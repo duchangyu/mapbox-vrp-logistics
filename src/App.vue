@@ -1,7 +1,16 @@
 <template>
   <div class="map-wrapper">
     <div ref="mapContainer" class="map-container"></div>
-    <div class="control-panel">
+
+    <!-- Tab switcher -->
+    <div class="tab-bar">
+      <button :class="{ active: mode === 'route' }" @click="switchMode('route')">3点路线</button>
+      <button :class="{ active: mode === 'matrix' }" @click="switchMode('matrix')">时间矩阵</button>
+      <button :class="{ active: mode === 'optimize' }" @click="switchMode('optimize')">路线优化</button>
+    </div>
+
+    <!-- Route mode panel -->
+    <div class="control-panel" v-if="mode === 'route'">
       <div class="status" v-if="waypoints.length < 3">
         点击地图选择第 {{ waypoints.length + 1 }}/3 个点
       </div>
@@ -13,20 +22,36 @@
         重新选择
       </button>
     </div>
+
+    <!-- Matrix mode panel -->
+    <div class="side-panel" v-if="mode === 'matrix'">
+      <MatrixPanel :map="map" ref="matrixPanel" />
+    </div>
+
+    <!-- Optimization mode panel -->
+    <div class="side-panel" v-if="mode === 'optimize'">
+      <OptimizationPanel :map="map" ref="optimizationPanel" />
+    </div>
   </div>
 </template>
 
 <script>
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
+import MatrixPanel from "./components/MatrixPanel.vue";
+import OptimizationPanel from "./components/OptimizationPanel.vue";
 
 mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
 
 const MARKER_COLORS = ["#e74c3c", "#2ecc71", "#3498db"];
 
 export default {
+  components: { MatrixPanel, OptimizationPanel },
+
   data() {
     return {
+      mode: "route",
+      map: null,
       waypoints: [],
       markers: [],
       routeDistance: "",
@@ -38,7 +63,7 @@ export default {
     const map = new mapboxgl.Map({
       container: this.$refs.mapContainer,
       style: "mapbox://styles/mapbox/standard",
-      center: [116.55953, 39.86290],
+      center: [-122.4194, 37.7749],
       zoom: 13,
     });
 
@@ -70,13 +95,11 @@ export default {
           "line-width": 10,
           "line-opacity": 0.3,
         },
-      },
-      // Insert casing below the main line
-      "route-line"
-      );
+      }, "route-line");
     });
 
     map.on("click", (e) => {
+      if (this.mode !== "route") return;
       if (this.waypoints.length >= 3) return;
 
       const coords = [e.lngLat.lng, e.lngLat.lat];
@@ -97,6 +120,10 @@ export default {
   },
 
   methods: {
+    switchMode(mode) {
+      this.mode = mode;
+    },
+
     async fetchRoute() {
       const coords = this.waypoints.map((c) => c.join(",")).join(";");
       const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${coords}?geometries=geojson&overview=full&access_token=${mapboxgl.accessToken}`;
@@ -171,9 +198,42 @@ export default {
   height: 100%;
 }
 
-.control-panel {
+/* Tab bar */
+.tab-bar {
   position: absolute;
   top: 16px;
+  left: 16px;
+  display: flex;
+  gap: 4px;
+  z-index: 10;
+}
+
+.tab-bar button {
+  padding: 8px 18px;
+  border: none;
+  border-radius: 6px 6px 0 0;
+  background: rgba(255, 255, 255, 0.7);
+  color: #666;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.tab-bar button.active {
+  background: rgba(255, 255, 255, 0.95);
+  color: #1a5276;
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.tab-bar button:hover:not(.active) {
+  background: rgba(255, 255, 255, 0.85);
+}
+
+/* Route control panel */
+.control-panel {
+  position: absolute;
+  top: 50px;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
@@ -215,5 +275,20 @@ export default {
 
 .btn-reset:hover {
   background: #c0392b;
+}
+
+/* Matrix side panel */
+.side-panel {
+  position: absolute;
+  top: 50px;
+  left: 16px;
+  width: 460px;
+  max-height: calc(100% - 80px);
+  overflow-y: auto;
+  background: rgba(255, 255, 255, 0.95);
+  padding: 16px;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+  z-index: 10;
 }
 </style>
