@@ -1,6 +1,7 @@
 {
-  "name": "vue-and-mapbox-gl-js",
-  "version": "0.0.0",
+  "name": "mapbox-vrp-logistics",
+  "version": "1.0.0",
+  "description": "Logistics route optimization system with Mapbox APIs and VRP algorithm",
   "private": true,
   "type": "module",
   "scripts": {
