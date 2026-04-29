@@ -7,6 +7,7 @@
       <button :class="{ active: mode === 'route' }" @click="switchMode('route')">3点路线</button>
       <button :class="{ active: mode === 'matrix' }" @click="switchMode('matrix')">时间矩阵</button>
       <button :class="{ active: mode === 'optimize' }" @click="switchMode('optimize')">路线优化</button>
+      <button :class="{ active: mode === 'mapmatching' }" @click="switchMode('mapmatching')">地图匹配</button>
     </div>
 
     <!-- Route mode panel -->
@@ -32,6 +33,11 @@
     <div class="side-panel" v-if="mode === 'optimize'">
       <OptimizationPanel :map="map" ref="optimizationPanel" />
     </div>
+
+    <!-- Map Matching mode panel -->
+    <div class="side-panel" v-if="mode === 'mapmatching'">
+      <MapMatchingPanel :map="map" ref="mapMatchingPanel" />
+    </div>
   </div>
 </template>
 
@@ -40,13 +46,14 @@ import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import MatrixPanel from "./components/MatrixPanel.vue";
 import OptimizationPanel from "./components/OptimizationPanel.vue";
+import MapMatchingPanel from "./components/MapMatchingPanel.vue";
 
 mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
 
 const MARKER_COLORS = ["#e74c3c", "#2ecc71", "#3498db"];
 
 export default {
-  components: { MatrixPanel, OptimizationPanel },
+  components: { MatrixPanel, OptimizationPanel, MapMatchingPanel },
 
   data() {
     return {
