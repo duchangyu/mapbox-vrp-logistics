@@ -153,8 +153,17 @@ export default {
         // Store result for display
         this.optimizedRoute = result;
 
-        // Draw the optimized route on map
-        await this.drawOptimizedRoute(result.stops.map((s) => s.coords));
+        // Draw the optimized route on map using geometry from API
+        if (result.geometry) {
+          // Use geometry from API response directly
+          this.map.getSource(this.routeSourceId).setData({
+            type: "Feature",
+            geometry: result.geometry,
+          });
+        } else {
+          // Fallback: draw straight lines between stops
+          await this.drawOptimizedRoute(result.stops.map((s) => s.coords));
+        }
 
       } catch (err) {
         this.errorMsg = err.message || "优化失败，请重试";
@@ -164,114 +173,76 @@ export default {
     },
 
     async callOptimizationAPI(start, waypoints) {
-      // Build the optimization request for Mapbox Optimization API v2
-      const locations = [
-        { name: "start", coordinates: start.coords },
-        ...waypoints.map((w) => ({ name: w.name, coordinates: w.coords })),
+      // Build coordinates string for Optimization API v1
+      // Format: lon,lat;lon,lat;... (semicolon-separated)
+      const allCoords = [
+        start.coords,
+        ...waypoints.map((w) => w.coords),
       ];
+      const coordsStr = allCoords.map((c) => c.join(",")).join(";");
 
-      // Create location name mapping
-      const locationNames = locations.map((l) => l.name);
+      // Use v1 API: GET https://api.mapbox.com/optimized-trips/v1/{profile}/{coordinates}
+      // profile: mapbox/driving, with roundtrip=true to return to start
+      const url = `https://api.mapbox.com/optimized-trips/v1/mapbox/driving/${coordsStr}?roundtrip=true&geometries=geojson&overview=full&access_token=${mapboxgl.accessToken}`;
 
-      // For a simple round trip from start through waypoints back to start (or not)
-      // We'll do: start -> waypoints (optimized order) -> end back at start
-      // Use round trip configuration
-
-      const requestBody = {
-        locations: locations,
-        vehicles: [
-          {
-            id: "vehicle-1",
-            start_location: "start",
-            end_location: "start", // round trip back to start
-          },
-        ],
-        shipments: waypoints.map((w, idx) => ({
-          id: `stop-${idx}`,
-          from: w.name,
-          to: w.name, // pickup and delivery at same location for waypoint
-        })),
-      };
-
-      // First, try the Optimization API v2
-      const response = await fetch(
-        `https://api.mapbox.com/optimized-trips/v2?access_token=${mapboxgl.accessToken}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(requestBody),
-        }
-      );
+      const response = await fetch(url);
 
       if (!response.ok) {
         const errorText = await response.text();
         throw new Error(`Optimization API failed: ${errorText}`);
       }
 
-      const jobResult = await response.json();
+      const data = await response.json();
 
-      if (jobResult.id) {
-        // Poll for results
-        const result = await this.pollForResults(jobResult.id);
-        return this.parseOptimizationResult(result, locationNames, locations);
+      if (data.code !== "Ok") {
+        throw new Error(data.message || "Optimization failed");
       }
 
-      throw new Error("No job ID returned from optimization API");
+      return this.parseOptimizationResult(data, start, waypoints);
     },
 
-    async pollForResults(jobId, maxAttempts = 30) {
-      for (let i = 0; i < maxAttempts; i++) {
-        const res = await fetch(
-          `https://api.mapbox.com/optimized-trips/v2/${jobId}?access_token=${mapboxgl.accessToken}`
-        );
-        const data = await res.json();
-
-        if (data.status === "success" || data.status === "completed") {
-          return data;
-        }
-
-        if (data.status === "failed") {
-          throw new Error("Optimization job failed");
-        }
-
-        // Wait before next poll
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-      }
-
-      throw new Error("Optimization timed out");
-    },
-
-    parseOptimizationResult(data, locationNames, locations) {
-      if (!data.routes || data.routes.length === 0) {
+    parseOptimizationResult(data, start, waypoints) {
+      if (!data.trips || data.trips.length === 0) {
         throw new Error("No route found in optimization result");
       }
 
-      const route = data.routes[0];
+      const trip = data.trips[0];
       const stops = [];
 
-      // Parse stops from route
-      if (route.stops) {
-        route.stops.forEach((stop, idx) => {
-          const locIndex = locationNames.indexOf(stop.location);
-          if (locIndex !== -1) {
+      // Build a map of waypoint_index to waypoint name/coords
+      // The waypoint_index in v1 API refers to position in the coordinates string
+      // Coordinates string is: start, waypoint1, waypoint2, ...
+      // So waypoint_index 0 = start, waypoint_index 1+ = waypoints
+      const waypointIndexMap = new Map();
+      waypointIndexMap.set(0, { name: start.name, coords: start.coords });
+      waypoints.forEach((wp, idx) => {
+        waypointIndexMap.set(idx + 1, { name: wp.name, coords: wp.coords });
+      });
+
+      // waypoints array contains the optimized order
+      // Each waypoint has waypoint_index indicating its original position
+      if (data.waypoints) {
+        data.waypoints.forEach((wp) => {
+          const info = waypointIndexMap.get(wp.waypoint_index);
+          if (info) {
             stops.push({
-              name: locations[locIndex].name,
-              coords: locations[locIndex].coordinates,
-              duration: stop.duration,
-              eta: stop.eta,
+              name: info.name,
+              coords: info.coords,
+              duration: undefined,
             });
           }
         });
       }
 
       // Calculate total distance and duration
-      const totalDistance = route.distance ? this.formatDistance(route.distance) : "N/A";
-      const totalDuration = route.duration ? this.formatDuration(route.duration) : "N/A";
+      const totalDistance = trip.distance ? this.formatDistance(trip.distance) : "N/A";
+      const totalDuration = trip.duration ? this.formatDuration(trip.duration) : "N/A";
 
       return {
         stops,
         totalDistance,
         totalDuration,
+        geometry: trip.geometry, // GeoJSON geometry for drawing route
       };
     },
 
