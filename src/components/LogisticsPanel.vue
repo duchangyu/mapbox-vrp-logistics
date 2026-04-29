@@ -35,6 +35,27 @@
       </div>
     </div>
 
+    <!-- Delivery points list -->
+    <div class="points-list" v-if="deliveryPoints.length > 0 && isSettingComplete">
+      <h4>收货点列表</h4>
+      <div class="points-table">
+        <div class="points-header">
+          <span>序号</span>
+          <span>坐标</span>
+          <span>收货量</span>
+        </div>
+        <div
+          v-for="(point, idx) in deliveryPoints"
+          :key="point.id"
+          class="points-row"
+        >
+          <span>{{ idx + 1 }}</span>
+          <span>{{ point.coords[0].toFixed(4) }}, {{ point.coords[1].toFixed(4) }}</span>
+          <span class="demand-value">{{ point.demand }}</span>
+        </div>
+      </div>
+    </div>
+
     <div class="action-buttons" v-if="isSettingComplete">
       <button class="btn-calc" @click="calculateVRP" :disabled="loading || deliveryPoints.length === 0">
         {{ loading ? '计算中...' : '计算最优方案' }}
@@ -770,6 +791,47 @@ export default {
 .results {
   border-top: 1px solid #eee;
   padding-top: 14px;
+}
+
+.points-list {
+  border-top: 1px solid #eee;
+  padding-top: 14px;
+}
+
+.points-list h4 {
+  margin: 0 0 10px 0;
+  font-size: 14px;
+  color: #333;
+}
+
+.points-table {
+  font-size: 12px;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.points-header {
+  display: grid;
+  grid-template-columns: 40px 1fr 60px;
+  gap: 8px;
+  padding: 8px 10px;
+  background: #f5f5f5;
+  font-weight: 600;
+  color: #555;
+}
+
+.points-row {
+  display: grid;
+  grid-template-columns: 40px 1fr 60px;
+  gap: 8px;
+  padding: 6px 10px;
+  border-top: 1px solid #eee;
+}
+
+.points-row .demand-value {
+  color: #27ae60;
+  font-weight: 600;
 }
 
 .results-header {
