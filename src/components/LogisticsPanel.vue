@@ -37,12 +37,15 @@
 
     <!-- Delivery points list -->
     <div class="points-list" v-if="deliveryPoints.length > 0 && isSettingComplete">
-      <h4>收货点列表</h4>
-      <div class="points-table">
+      <div class="points-header-row" @click="pointsListExpanded = !pointsListExpanded">
+        <h4>收货点列表 ({{ deliveryPoints.length }})</h4>
+        <span class="expand-icon">{{ pointsListExpanded ? '▼' : '▶' }}</span>
+      </div>
+      <div class="points-table" v-if="pointsListExpanded">
         <div class="points-header">
           <span>序号</span>
           <span>坐标</span>
-          <span>收货量</span>
+          <span>收货量(kg)</span>
         </div>
         <div
           v-for="(point, idx) in deliveryPoints"
@@ -155,6 +158,7 @@ export default {
       tempPoints: [],
       isSettingComplete: false,
       mapClickHandler: null,
+      pointsListExpanded: false,
     };
   },
 
@@ -799,9 +803,26 @@ export default {
 }
 
 .points-list h4 {
-  margin: 0 0 10px 0;
+  margin: 0;
   font-size: 14px;
   color: #333;
+}
+
+.points-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  padding: 4px 0;
+}
+
+.points-header-row:hover {
+  color: #3b9ddd;
+}
+
+.expand-icon {
+  font-size: 10px;
+  color: #888;
 }
 
 .points-table {
