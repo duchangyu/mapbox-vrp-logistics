@@ -143,6 +143,7 @@ function solveVRP(locations, distanceMatrix, durationMatrix, vehicles) {
     // Find best vehicle for this location
     let bestVehicle = -1;
     let bestDuration = Infinity;
+    let bestLastIdx = 0;
 
     for (let v = 0; v < numVehicles; v++) {
       const lastIdx = vehicleRoutes[v][vehicleRoutes[v].length - 1];
@@ -153,6 +154,7 @@ function solveVRP(locations, distanceMatrix, durationMatrix, vehicles) {
         if (duration < bestDuration) {
           bestDuration = duration;
           bestVehicle = v;
+          bestLastIdx = lastIdx;
         }
       }
     }
@@ -166,6 +168,7 @@ function solveVRP(locations, distanceMatrix, durationMatrix, vehicles) {
           if (duration < bestDuration) {
             bestDuration = duration;
             bestVehicle = v;
+            bestLastIdx = lastIdx;
           }
         }
       }
@@ -175,7 +178,7 @@ function solveVRP(locations, distanceMatrix, durationMatrix, vehicles) {
       vehicleRoutes[bestVehicle].push(locIdx);
       vehicleLoads[bestVehicle] += demand;
       vehicleDurations[bestVehicle] += bestDuration;
-      vehicleDistances[bestVehicle] += distanceMatrix[lastIdx][locIdx];
+      vehicleDistances[bestVehicle] += distanceMatrix[bestLastIdx][locIdx];
       assigned.add(locIdx);
     }
   }
