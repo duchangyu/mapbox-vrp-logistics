@@ -224,7 +224,7 @@ export default {
       this.clearRoutes();
 
       try {
-        // First, get distance matrix from Mapbox Matrix API
+        // Get distance matrix from Mapbox Matrix API
         const allPoints = [this.warehouse, ...this.deliveryPoints];
         const coordsStr = allPoints.map(p => p.coords.join(',')).join(';');
 
@@ -256,7 +256,11 @@ export default {
         }
 
         this.solution = data.solution;
-        this.displayRoutesOnMap(data.solution);
+
+        // Fetch actual route geometry for each vehicle using Directions API
+        await this.fetchRouteGeometries(this.solution);
+
+        this.displayRoutesOnMap(this.solution);
         this.saveState();
 
       } catch (err) {
@@ -268,6 +272,34 @@ export default {
         console.error('VRP error:', err);
       } finally {
         this.loading = false;
+      }
+    },
+
+    async fetchRouteGeometries(solution) {
+      // For each vehicle's route, get actual driving geometry from Directions API
+      for (const route of solution.routes) {
+        if (route.stops.length <= 2) continue;
+
+        // Build coordinates: warehouse -> assigned stops -> warehouse
+        const coords = route.stops.map(s => s.coords);
+        // Add return to warehouse
+        coords.push(this.warehouse.coords);
+
+        const coordsStr = coords.map(c => c.join(',')).join(';');
+        const directionsUrl = `https://api.mapbox.com/directions/v5/mapbox/driving/${coordsStr}?geometries=geojson&overview=full&access_token=${mapboxgl.accessToken}`;
+
+        try {
+          const res = await fetch(directionsUrl);
+          const data = await res.json();
+
+          if (data.routes && data.routes.length > 0) {
+            route.geometry = data.routes[0].geometry;
+            route.distance = data.routes[0].distance / 1000; // Convert to km
+            route.duration = data.routes[0].duration / 60; // Convert to minutes
+          }
+        } catch (err) {
+          console.error('Failed to fetch route geometry for vehicle', route.vehicleId, err);
+        }
       }
     },
 
@@ -284,7 +316,7 @@ export default {
       this.markers.push(warehouseMarker);
 
       // Add delivery point markers
-      this.deliveryPoints.forEach((point, idx) => {
+      this.deliveryPoints.forEach((point) => {
         const marker = new mapboxgl.Marker({ color: '#e74c3c', scale: 0.8 })
           .setLngLat(point.coords)
           .setPopup(new mapboxgl.Popup().setText(`${point.name} (需求: ${point.demand})`))
@@ -309,8 +341,11 @@ export default {
 
         const color = VEHICLE_COLORS[route.vehicleId % VEHICLE_COLORS.length];
 
-        // Get coordinates for the route
-        const coords = route.stops.map(s => s.coords);
+        // Use actual route geometry from Directions API if available, otherwise straight lines
+        const geometry = route.geometry || {
+          type: 'LineString',
+          coordinates: route.stops.map(s => s.coords)
+        };
 
         // Add route line
         const layerId = `route-${route.vehicleId}`;
@@ -320,10 +355,7 @@ export default {
           type: 'geojson',
           data: {
             type: 'Feature',
-            geometry: {
-              type: 'LineString',
-              coordinates: coords
-            }
+            geometry
           }
         });
 
