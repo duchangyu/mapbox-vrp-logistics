@@ -224,7 +224,7 @@ export default {
       this.clearRoutes();
 
       try {
-        // Get distance matrix from Mapbox Matrix API
+        // Get distance matrix from Mapbox Matrix API for vehicle assignment
         const allPoints = [this.warehouse, ...this.deliveryPoints];
         const coordsStr = allPoints.map(p => p.coords.join(',')).join(';');
 
@@ -237,7 +237,7 @@ export default {
           throw new Error(matrixData.message || '获取距离矩阵失败');
         }
 
-        // Send to VRP solver with real distance matrix
+        // Send to VRP solver with real distance matrix for vehicle assignment
         const res = await fetch('http://localhost:3001/api/vrp/optimize', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -257,8 +257,8 @@ export default {
 
         this.solution = data.solution;
 
-        // Fetch actual route geometry for each vehicle using Directions API
-        await this.fetchRouteGeometries(this.solution);
+        // Use Mapbox Optimization API to find optimal stop order for each vehicle
+        await this.optimizeVehicleRoutes(this.solution);
 
         this.displayRoutesOnMap(this.solution);
         this.saveState();
@@ -272,6 +272,52 @@ export default {
         console.error('VRP error:', err);
       } finally {
         this.loading = false;
+      }
+    },
+
+    async optimizeVehicleRoutes(solution) {
+      // Use Mapbox Optimization API to find optimal order for each vehicle's stops
+      for (const route of solution.routes) {
+        if (route.stops.length <= 2) continue;
+
+        // Build coordinates: warehouse -> assigned stops
+        const coords = [this.warehouse.coords, ...route.stops.slice(1, -1).map(s => s.coords)];
+        const coordsStr = coords.map(c => c.join(',')).join(';');
+
+        // Call Optimization API to get optimal order
+        const optimizeUrl = `https://api.mapbox.com/optimized-trips/v1/mapbox/driving/${coordsStr}?roundtrip=false&geometries=geojson&overview=full&access_token=${mapboxgl.accessToken}`;
+
+        try {
+          const res = await fetch(optimizeUrl);
+          const data = await res.json();
+
+          if (data.code === 'Ok' && data.trips && data.trips.length > 0) {
+            // Update route with optimized data
+            route.geometry = data.trips[0].geometry;
+            route.distance = data.trips[0].distance / 1000; // km
+            route.duration = data.trips[0].duration / 60; // minutes
+
+            // Update stop order based on optimization result
+            if (data.waypoints) {
+              const newStops = [];
+              data.waypoints.forEach((wp, idx) => {
+                if (wp.waypoint_index === 0) {
+                  // Warehouse
+                  newStops.push(route.stops[0]);
+                } else {
+                  // Original stop at position (waypoint_index - 1) in our original list (excluding warehouse at start and end)
+                  const originalStopIdx = wp.waypoint_index;
+                  newStops.push(route.stops[originalStopIdx]);
+                }
+              });
+              // Add warehouse at end for return
+              newStops.push(route.stops[route.stops.length - 1]);
+              route.stops = newStops;
+            }
+          }
+        } catch (err) {
+          console.error('Failed to optimize route for vehicle', route.vehicleId, err);
+        }
       }
     },
 
