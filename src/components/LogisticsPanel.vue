@@ -300,7 +300,7 @@ export default {
             // Update stop order based on optimization result
             if (data.waypoints) {
               const newStops = [];
-              data.waypoints.forEach((wp, idx) => {
+              data.waypoints.forEach((wp) => {
                 if (wp.waypoint_index === 0) {
                   // Warehouse
                   newStops.push(route.stops[0]);
