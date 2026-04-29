@@ -155,7 +155,9 @@ export default {
 
         // Draw the optimized route on map using geometry from API
         if (result.geometry) {
-          // Use geometry from API response directly
+          // First ensure the source/layers exist, then set the geometry
+          await this.drawOptimizedRoute(result.stops.map((s) => s.coords));
+          // Now update with the actual geometry from API
           this.map.getSource(this.routeSourceId).setData({
             type: "Feature",
             geometry: result.geometry,
