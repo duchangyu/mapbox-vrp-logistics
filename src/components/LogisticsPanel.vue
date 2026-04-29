@@ -133,9 +133,9 @@ const VEHICLE_COLORS = [
 ];
 
 const VEHICLE_CONFIG = [
-  { type: 'small', count: 4, capacity: 50 },
-  { type: 'medium', count: 4, capacity: 100 },
-  { type: 'large', count: 2, capacity: 200 },
+  { type: 'small', count: 4, capacity: 20 },
+  { type: 'medium', count: 4, capacity: 50 },
+  { type: 'large', count: 2, capacity: 100 },
 ];
 
 export default {
@@ -152,6 +152,8 @@ export default {
       loading: false,
       errorMsg: '',
       markers: [],
+      pointMarkers: [],
+      pointMarkerMap: {},
       routeLayers: [],
       VEHICLE_COLORS,
       isSelectingPoints: false,
@@ -286,6 +288,7 @@ export default {
         await this.optimizeVehicleRoutes(this.solution);
 
         this.displayRoutesOnMap(this.solution);
+        this.displayPointsOnMap(this.solution);
         this.saveState();
 
       } catch (err) {
@@ -301,83 +304,60 @@ export default {
     },
 
     async optimizeVehicleRoutes(solution) {
-      // Use Mapbox Optimization API to find optimal order for each vehicle's stops
-      for (const route of solution.routes) {
-        if (route.stops.length <= 2) continue;
-
-        // Build coordinates: warehouse -> assigned stops
-        const coords = [this.warehouse.coords, ...route.stops.slice(1, -1).map(s => s.coords)];
-        const coordsStr = coords.map(c => c.join(',')).join(';');
-
-        // Call Optimization API to get optimal order
-        const optimizeUrl = `https://api.mapbox.com/optimized-trips/v1/mapbox/driving/${coordsStr}?roundtrip=false&geometries=geojson&overview=full&access_token=${mapboxgl.accessToken}`;
-
-        try {
-          const res = await fetch(optimizeUrl);
-          const data = await res.json();
-
-          if (data.code === 'Ok' && data.trips && data.trips.length > 0) {
-            // Update route with optimized data
-            route.geometry = data.trips[0].geometry;
-            route.distance = data.trips[0].distance / 1000; // km
-            route.duration = data.trips[0].duration / 60; // minutes
-
-            // Update stop order based on optimization result
-            if (data.waypoints) {
-              const newStops = [];
-              data.waypoints.forEach((wp) => {
-                if (wp.waypoint_index === 0) {
-                  // Warehouse
-                  newStops.push(route.stops[0]);
-                } else {
-                  // Original stop at position (waypoint_index - 1) in our original list (excluding warehouse at start and end)
-                  const originalStopIdx = wp.waypoint_index;
-                  newStops.push(route.stops[originalStopIdx]);
-                }
-              });
-              // Add warehouse at end for return
-              newStops.push(route.stops[route.stops.length - 1]);
-              route.stops = newStops;
-            }
-          }
-        } catch (err) {
-          console.error('Failed to optimize route for vehicle', route.vehicleId, err);
-        }
-      }
-    },
-
-    async fetchRouteGeometries(solution) {
       // For each vehicle's route, get actual driving geometry from Directions API
       for (const route of solution.routes) {
         if (route.stops.length <= 2) continue;
 
-        // Build coordinates: warehouse -> assigned stops -> warehouse
-        const coords = route.stops.map(s => s.coords);
-        // Add return to warehouse
-        coords.push(this.warehouse.coords);
-
+        // Build coordinates: warehouse -> assigned stops -> warehouse (return)
+        const coords = [
+          this.warehouse.coords,
+          ...route.stops.slice(1, -1).map(s => s.coords),
+          this.warehouse.coords
+        ];
         const coordsStr = coords.map(c => c.join(',')).join(';');
-        const directionsUrl = `https://api.mapbox.com/directions/v5/mapbox/driving/${coordsStr}?geometries=geojson&overview=full&access_token=${mapboxgl.accessToken}`;
+
+        console.log('Getting route for vehicle', route.vehicleId, 'with', coords.length, 'stops:', coordsStr);
+
+        // Use Directions API for proper road-matching geometry
+        const directionsUrl = `https://api.mapbox.com/directions/v5/mapbox/driving/${coordsStr}?geometries=geojson&overview=full&steps=true&access_token=${mapboxgl.accessToken}`;
 
         try {
           const res = await fetch(directionsUrl);
           const data = await res.json();
 
-          if (data.routes && data.routes.length > 0) {
+          console.log('Directions result for vehicle', route.vehicleId, ':', data.code, data.routes ? 'has routes' : 'no routes');
+
+          if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
+            // Update route with actual driving geometry
             route.geometry = data.routes[0].geometry;
-            route.distance = data.routes[0].distance / 1000; // Convert to km
-            route.duration = data.routes[0].duration / 60; // Convert to minutes
+            route.distance = data.routes[0].distance / 1000; // km
+            route.duration = data.routes[0].duration / 60; // minutes
+            console.log('Got geometry, coords count:', data.routes[0].geometry.coordinates.length);
+          } else {
+            console.error('Directions failed:', data.message || data.code);
           }
         } catch (err) {
-          console.error('Failed to fetch route geometry for vehicle', route.vehicleId, err);
+          console.error('Failed to get route for vehicle', route.vehicleId, err);
         }
       }
     },
 
-    displayPointsOnMap() {
+    displayPointsOnMap(solution = null) {
       if (!this.map) return;
 
       this.clearMarkers();
+
+      // Build map of point -> vehicle color
+      const pointColorMap = {};
+      if (solution) {
+        solution.routes.forEach((route) => {
+          if (route.stops.length <= 2) return;
+          const color = VEHICLE_COLORS[route.vehicleId % VEHICLE_COLORS.length];
+          route.stops.slice(1, -1).forEach((stop) => {
+            pointColorMap[stop.id] = color;
+          });
+        });
+      }
 
       // Add warehouse marker
       const warehouseMarker = new mapboxgl.Marker({ color: '#3498db', scale: 1.2 })
@@ -386,13 +366,16 @@ export default {
         .addTo(this.map);
       this.markers.push(warehouseMarker);
 
-      // Add delivery point markers
+      // Add delivery point markers with route colors if available
+      this.pointMarkerMap = {};
       this.deliveryPoints.forEach((point) => {
-        const marker = new mapboxgl.Marker({ color: '#e74c3c', scale: 0.8 })
+        const color = pointColorMap[point.id] || '#e74c3c';
+        const marker = new mapboxgl.Marker({ color, scale: 0.8 })
           .setLngLat(point.coords)
           .setPopup(new mapboxgl.Popup().setText(`${point.name} (需求: ${point.demand})`))
           .addTo(this.map);
-        this.markers.push(marker);
+        this.pointMarkers.push(marker);
+        this.pointMarkerMap[point.id] = marker;
       });
 
       // Fit bounds
@@ -470,11 +453,25 @@ export default {
     },
 
     highlightRoute(vehicleId) {
-      this.routeLayers.forEach(({ layerId, sourceId }) => {
+      this.routeLayers.forEach(({ layerId }) => {
         const isHighlighted = layerId === `route-${vehicleId}`;
         this.map.setPaintProperty(layerId, 'line-width', isHighlighted ? 6 : 4);
         this.map.setPaintProperty(layerId, 'line-opacity', isHighlighted ? 1 : 0.6);
       });
+
+      // Highlight delivery points for this route
+      if (this.solution) {
+        const route = this.solution.routes.find(r => r.vehicleId === vehicleId);
+        if (route) {
+          route.stops.slice(1, -1).forEach((stop) => {
+            const marker = this.pointMarkerMap[stop.id];
+            if (marker) {
+              marker.getElement().style.transform = 'scale(1.3)';
+              marker.getElement().style.zIndex = '10';
+            }
+          });
+        }
+      }
     },
 
     unhighlightRoute() {
@@ -482,11 +479,20 @@ export default {
         this.map.setPaintProperty(layerId, 'line-width', 4);
         this.map.setPaintProperty(layerId, 'line-opacity', 0.8);
       });
+
+      // Reset all delivery point markers
+      this.pointMarkers.forEach((marker) => {
+        marker.getElement().style.transform = 'scale(1)';
+        marker.getElement().style.zIndex = '';
+      });
     },
 
     clearMarkers() {
       this.markers.forEach(m => m.remove());
       this.markers = [];
+      this.pointMarkers.forEach(m => m.remove());
+      this.pointMarkers = [];
+      this.pointMarkerMap = {};
     },
 
     clearRoutes() {
@@ -505,6 +511,7 @@ export default {
       }
       this.clearMarkers();
       this.clearRoutes();
+      this.pointMarkerMap = {};
       this.deliveryPoints = [];
       this.vehicles = [];
       this.solution = null;
@@ -549,7 +556,7 @@ export default {
           this.isSettingComplete = this.deliveryPoints.length > 0;
 
           if (this.deliveryPoints.length > 0) {
-            this.displayPointsOnMap();
+            this.displayPointsOnMap(this.solution);
             if (this.solution) {
               this.displayRoutesOnMap(this.solution);
             }
