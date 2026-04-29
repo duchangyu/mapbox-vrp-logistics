@@ -3,18 +3,18 @@
     <!-- Point setting mode -->
     <div class="setting-mode" v-if="!isSettingComplete">
       <div class="setting-info" v-if="isSelectingPoints">
-        <span class="setting-hint">在地图上点击添加收货点...</span>
-        <span class="point-count">已添加: {{ tempPoints.length }} 个</span>
+        <span class="setting-hint">{{ $t('logistics.settingHint') }}</span>
+        <span class="point-count">{{ $t('logistics.pointsAdded') }}: {{ tempPoints.length }}</span>
       </div>
       <div class="setting-buttons">
         <button v-if="!isSelectingPoints" class="btn-start" @click="startSelectingPoints">
-          开始设置收货点
+          {{ $t('logistics.startSetting') }}
         </button>
         <button v-if="isSelectingPoints && tempPoints.length > 0" class="btn-done" @click="finishSettingPoints">
-          完成设置 ({{ tempPoints.length }})
+          {{ $t('logistics.completeSetting', { count: tempPoints.length }) }}
         </button>
         <button v-if="isSelectingPoints" class="btn-cancel" @click="cancelSelectingPoints">
-          取消
+          {{ $t('logistics.cancel') }}
         </button>
       </div>
     </div>
@@ -22,15 +22,15 @@
     <!-- Stats after setting -->
     <div class="stats" v-if="deliveryPoints.length > 0 && isSettingComplete">
       <div class="stat-item">
-        <span class="stat-label">收货点</span>
+        <span class="stat-label">{{ $t('logistics.deliveryPoints') }}</span>
         <span class="stat-value">{{ deliveryPoints.length }}</span>
       </div>
       <div class="stat-item">
-        <span class="stat-label">总货物量</span>
+        <span class="stat-label">{{ $t('logistics.totalDemand') }}</span>
         <span class="stat-value">{{ totalDemand }}</span>
       </div>
       <div class="stat-item">
-        <span class="stat-label">车辆数</span>
+        <span class="stat-label">{{ $t('logistics.vehicles') }}</span>
         <span class="stat-value">{{ vehicles.length }}</span>
       </div>
     </div>
@@ -38,14 +38,14 @@
     <!-- Delivery points list -->
     <div class="points-list" v-if="deliveryPoints.length > 0 && isSettingComplete">
       <div class="points-header-row" @click="pointsListExpanded = !pointsListExpanded">
-        <h4>收货点列表 ({{ deliveryPoints.length }})</h4>
+        <h4>{{ $t('logistics.pointsList', { count: deliveryPoints.length }) }}</h4>
         <span class="expand-icon">{{ pointsListExpanded ? '▼' : '▶' }}</span>
       </div>
       <div class="points-table" v-if="pointsListExpanded">
         <div class="points-header">
-          <span>序号</span>
-          <span>坐标</span>
-          <span>收货量(kg)</span>
+          <span>{{ $t('logistics.sequence') }}</span>
+          <span>{{ $t('logistics.coords') }}</span>
+          <span>{{ $t('logistics.demand') }}</span>
         </div>
         <div
           v-for="(point, idx) in deliveryPoints"
@@ -61,16 +61,16 @@
 
     <div class="action-buttons" v-if="isSettingComplete">
       <button class="btn-calc" @click="calculateVRP" :disabled="loading || deliveryPoints.length === 0">
-        {{ loading ? '计算中...' : '计算最优方案' }}
+        {{ loading ? $t('logistics.calculating') : $t('logistics.calculate') }}
       </button>
       <button class="btn-reset" @click="resetAll" :disabled="loading">
-        重新设置
+        {{ $t('logistics.reset') }}
       </button>
     </div>
 
     <div class="action-buttons" v-if="deliveryPoints.length > 0 && isSettingComplete">
       <button class="btn-clear-save" @click="clearSavedState">
-        删除已保存数据
+        {{ $t('logistics.deleteSaved') }}
       </button>
     </div>
 
@@ -79,10 +79,10 @@
     <!-- Results -->
     <div class="results" v-if="solution">
       <div class="results-header">
-        <h3>配送方案</h3>
+        <h3>{{ $t('logistics.distributionPlan') }}</h3>
         <div class="total-stats">
-          <span>总距离: {{ formatDistance(solution.totalDistance) }}</span>
-          <span>使用车辆: {{ usedVehiclesCount }}/{{ vehicles.length }}</span>
+          <span>{{ $t('logistics.totalDistance') }}: {{ formatDistance(solution.totalDistance) }}</span>
+          <span>{{ $t('logistics.vehiclesUsed') }}: {{ usedVehiclesCount }}/{{ vehicles.length }}</span>
         </div>
       </div>
 
@@ -97,13 +97,13 @@
         >
           <div class="route-header">
             <span class="vehicle-badge" :style="{ background: VEHICLE_COLORS[route.vehicleId % VEHICLE_COLORS.length] }">
-              {{ route.vehicleType === 'small' ? '小型车' : route.vehicleType === 'medium' ? '中型车' : '大型车' }}
+              {{ vehicleTypeLabel(route.vehicleType) }}
             </span>
             <span class="route-distance">{{ formatDistance(route.distance) }}</span>
             <span class="route-duration">{{ formatDuration(route.duration) }}</span>
           </div>
           <div class="route-capacity">
-            载货量: {{ route.load }}/{{ route.capacity }}
+            {{ $t('logistics.load') }}: {{ route.load }}/{{ route.capacity }}
             <div class="capacity-bar">
               <div class="capacity-fill" :style="{ width: Math.min(100, (route.load / route.capacity) * 100) + '%' }"></div>
             </div>
@@ -242,7 +242,7 @@ export default {
 
     async calculateVRP() {
       if (this.deliveryPoints.length === 0) {
-        this.errorMsg = '请先生成收货点';
+        this.errorMsg = this.$t('errors.noPoints');
         return;
       }
 
@@ -293,9 +293,9 @@ export default {
 
       } catch (err) {
         if (err.message.includes('fetch')) {
-          this.errorMsg = '无法连接VRP求解服务，请先启动: node server/vrp-solver.js';
+          this.errorMsg = this.$t('errors.cannotConnectVRP');
         } else {
-          this.errorMsg = err.message || '计算失败，请重试';
+          this.errorMsg = err.message || this.$t('errors.calculationFailed');
         }
         console.error('VRP error:', err);
       } finally {
@@ -527,11 +527,16 @@ export default {
       return `${km.toFixed(1)}km`;
     },
 
+    vehicleTypeLabel(type) {
+      const labels = { small: 'logistics.small', medium: 'logistics.medium', large: 'logistics.large' };
+      return this.$t(labels[type] || type);
+    },
+
     formatDuration(minutes) {
-      if (minutes < 60) return `${Math.round(minutes)}分钟`;
+      if (minutes < 60) return `${Math.round(minutes)}${this.$t('route.minutes')}`;
       const h = Math.floor(minutes / 60);
       const m = Math.round(minutes % 60);
-      return `${h}小时${m}分钟`;
+      return `${h}${this.$t('route.hours')}${m}${this.$t('route.minutes')}`;
     },
 
     saveState() {

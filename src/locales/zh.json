@@ -1,0 +1,49 @@
+{
+  "tab": {
+    "route": "3点路线",
+    "matrix": "时间矩阵",
+    "optimize": "路线优化",
+    "mapmatching": "地图匹配",
+    "logistics": "物流配送"
+  },
+  "route": {
+    "clickToSelect": "点击地图选择第 {n}/3 个点",
+    "distance": "距离",
+    "duration": "预计时间",
+    "reset": "重新选择",
+    "hours": "小时",
+    "minutes": "分钟"
+  },
+  "logistics": {
+    "startSetting": "开始设置收货点",
+    "completeSetting": "完成设置 ({count})",
+    "cancel": "取消",
+    "settingHint": "在地图上点击添加收货点...",
+    "pointsAdded": "已添加",
+    "deliveryPoints": "收货点",
+    "totalDemand": "总货物量",
+    "vehicles": "车辆数",
+    "demandKg": "千克",
+    "pointsList": "收货点列表 ({count})",
+    "sequence": "序号",
+    "coords": "坐标",
+    "demand": "收货量(kg)",
+    "calculate": "计算最优方案",
+    "calculating": "计算中...",
+    "reset": "重新设置",
+    "deleteSaved": "删除已保存数据",
+    "distributionPlan": "配送方案",
+    "totalDistance": "总距离",
+    "vehiclesUsed": "使用车辆",
+    "small": "小型车",
+    "medium": "中型车",
+    "large": "大型车",
+    "load": "载货量",
+    "noRoute": "无路线"
+  },
+  "errors": {
+    "noPoints": "请先生成收货点",
+    "cannotConnectVRP": "无法连接VRP求解服务，请先启动: node server/vrp-solver.js",
+    "calculationFailed": "计算失败，请重试"
+  }
+}

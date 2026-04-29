@@ -1,0 +1,49 @@
+{
+  "tab": {
+    "route": "3-Point Route",
+    "matrix": "Time Matrix",
+    "optimize": "Route Optimize",
+    "mapmatching": "Map Matching",
+    "logistics": "Logistics"
+  },
+  "route": {
+    "clickToSelect": "Click map to select point {n}/3",
+    "distance": "Distance",
+    "duration": "Duration",
+    "reset": "Reset",
+    "hours": "h",
+    "minutes": "min"
+  },
+  "logistics": {
+    "startSetting": "Start Setting Points",
+    "completeSetting": "Complete ({count})",
+    "cancel": "Cancel",
+    "settingHint": "Click on map to add delivery points...",
+    "pointsAdded": "Added",
+    "deliveryPoints": "Delivery Points",
+    "totalDemand": "Total Demand",
+    "vehicles": "Vehicles",
+    "demandKg": "kg",
+    "pointsList": "Delivery Points List ({count})",
+    "sequence": "#",
+    "coords": "Coordinates",
+    "demand": "Demand(kg)",
+    "calculate": "Calculate Optimal",
+    "calculating": "Calculating...",
+    "reset": "Reset",
+    "deleteSaved": "Delete Saved Data",
+    "distributionPlan": "Distribution Plan",
+    "totalDistance": "Total Distance",
+    "vehiclesUsed": "Vehicles Used",
+    "small": "Small",
+    "medium": "Medium",
+    "large": "Large",
+    "load": "Load",
+    "noRoute": "No route"
+  },
+  "errors": {
+    "noPoints": "Please generate delivery points first",
+    "cannotConnectVRP": "Cannot connect to VRP solver. Please start: node server/vrp-solver.js",
+    "calculationFailed": "Calculation failed. Please try again"
+  }
+}

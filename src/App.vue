@@ -4,24 +4,24 @@
 
     <!-- Tab switcher -->
     <div class="tab-bar">
-      <button :class="{ active: mode === 'route' }" @click="switchMode('route')">3点路线</button>
-      <button :class="{ active: mode === 'matrix' }" @click="switchMode('matrix')">时间矩阵</button>
-      <button :class="{ active: mode === 'optimize' }" @click="switchMode('optimize')">路线优化</button>
-      <button :class="{ active: mode === 'mapmatching' }" @click="switchMode('mapmatching')">地图匹配</button>
-      <button :class="{ active: mode === 'logistics' }" @click="switchMode('logistics')">物流配送</button>
+      <button :class="{ active: mode === 'route' }" @click="switchMode('route')">{{ $t('tab.route') }}</button>
+      <button :class="{ active: mode === 'matrix' }" @click="switchMode('matrix')">{{ $t('tab.matrix') }}</button>
+      <button :class="{ active: mode === 'optimize' }" @click="switchMode('optimize')">{{ $t('tab.optimize') }}</button>
+      <button :class="{ active: mode === 'mapmatching' }" @click="switchMode('mapmatching')">{{ $t('tab.mapmatching') }}</button>
+      <button :class="{ active: mode === 'logistics' }" @click="switchMode('logistics')">{{ $t('tab.logistics') }}</button>
     </div>
 
     <!-- Route mode panel -->
     <div class="control-panel" v-if="mode === 'route'">
       <div class="status" v-if="waypoints.length < 3">
-        点击地图选择第 {{ waypoints.length + 1 }}/3 个点
+        {{ $t('route.clickToSelect', { n: waypoints.length + 1 }) }}
       </div>
       <div class="status route-info" v-else>
-        <span>距离: {{ routeDistance }}</span>
-        <span>预计时间: {{ routeDuration }}</span>
+        <span>{{ $t('route.distance') }}: {{ routeDistance }}</span>
+        <span>{{ $t('route.duration') }}: {{ routeDuration }}</span>
       </div>
       <button class="btn-reset" v-if="waypoints.length > 0" @click="resetWaypoints">
-        重新选择
+        {{ $t('route.reset') }}
       </button>
     </div>
 
