@@ -310,24 +310,17 @@ app.post('/api/vrp/optimize', (req, res) => {
       }
     }
 
-    // Use Mapbox matrix data if provided, otherwise build from Haversine
-    let distanceMatrix;
-    if (distances && distances.length > 0) {
-      // Use real Mapbox distances (in meters)
-      distanceMatrix = distances;
-    } else {
-      // Fallback to Haversine calculation
-      distanceMatrix = buildDistanceMatrix(allLocations);
+    // Use Mapbox matrix data - required
+    if (!distances || distances.length === 0 || !durations || durations.length === 0) {
+      res.status(400).json({
+        success: false,
+        error: '缺少Mapbox距离矩阵数据，请先调用Matrix API获取距离数据'
+      });
+      return;
     }
 
-    // Use Mapbox durations if provided (in seconds), otherwise calculate from distances
-    let durationMatrix;
-    if (durations && durations.length > 0) {
-      durationMatrix = durations;
-    } else {
-      // Convert distance (km) to duration (s) assuming 30 km/h
-      durationMatrix = distanceMatrix.map(row => row.map(d => (d / 30) * 3600));
-    }
+    const distanceMatrix = distances;
+    const durationMatrix = durations;
 
     // Solve VRP
     const result = solveVRP(allLocations, distanceMatrix, durationMatrix, vehicleList);
