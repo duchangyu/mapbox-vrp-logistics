@@ -20,44 +20,7 @@ const VEHICLE_TYPES = [
 ];
 
 // Warehouse location (SFO area - UPS Logistics Center)
-const WAREHOUSE = { id: 'warehouse', coords: [-122.3892, 37.6213], demand: 0 };
-
-/**
- * Calculate distance between two points (Haversine formula)
- */
-function calculateDistance(p1, p2) {
-  const R = 6371; // Earth's radius in km
-  const dLat = toRad(p2.coords[1] - p1.coords[1]);
-  const dLon = toRad(p2.coords[0] - p1.coords[0]);
-  const lat1 = toRad(p1.coords[1]);
-  const lat2 = toRad(p2.coords[1]);
-
-  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-            Math.sin(dLon / 2) * Math.sin(dLon / 2) * Math.cos(lat1) * Math.cos(lat2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
-}
-
-function toRad(deg) {
-  return deg * Math.PI / 180;
-}
-
-/**
- * Build distance matrix for all locations
- */
-function buildDistanceMatrix(locations) {
-  const n = locations.length;
-  const matrix = Array(n).fill(null).map(() => Array(n).fill(0));
-
-  for (let i = 0; i < n; i++) {
-    for (let j = 0; j < n; j++) {
-      if (i !== j) {
-        matrix[i][j] = calculateDistance(locations[i], locations[j]);
-      }
-    }
-  }
-  return matrix;
-}
+const WAREHOUSE = { id: 'warehouse', coords: [-122.3892, 37.6213], demand: 0, name: 'UPS物流中心 (SFO)' };
 
 /**
  * 2-opt optimization for a single route
@@ -102,13 +65,6 @@ function calculateRouteDistance(route, distMatrix) {
     total += distMatrix[route[i]][route[i + 1]];
   }
   return total;
-}
-
-/**
- * Calculate total demand for a route
- */
-function calculateRouteDemand(route, locations) {
-  return route.reduce((sum, idx) => sum + (locations[idx].demand || 0), 0);
 }
 
 /**
@@ -237,33 +193,6 @@ function calculateRouteDuration(route, durationMatrix) {
   return total;
 }
 
-/**
- * Generate 50 random delivery points in San Francisco area
- */
-function generateSFDeliveryPoints() {
-  const points = [];
-  // SF urban area bounds (avoiding ocean/beaches)
-  const bounds = {
-    minLon: -122.44,  // Eastern boundary (inland, away from Bay)
-    maxLon: -122.36,  // Western boundary
-    minLat: 37.72,    // Southern boundary
-    maxLat: 37.79     // Northern boundary
-  };
-
-  for (let i = 1; i <= 50; i++) {
-    const lon = bounds.minLon + Math.random() * (bounds.maxLon - bounds.minLon);
-    const lat = bounds.minLat + Math.random() * (bounds.maxLat - bounds.minLat);
-    points.push({
-      id: `point-${i}`,
-      coords: [lon, lat],
-      demand: Math.floor(Math.random() * 10) + 1, // Random demand 1-10
-      name: `收货点 ${i}`
-    });
-  }
-
-  return points;
-}
-
 // API Routes
 
 /**
@@ -274,27 +203,19 @@ app.post('/api/vrp/optimize', (req, res) => {
   try {
     const { locations, vehicles: customVehicles, durations, distances } = req.body;
 
-    // Build locations array (warehouse + delivery points)
-    const warehouseLocation = {
-      id: 'warehouse',
-      coords: WAREHOUSE.coords,
-      demand: 0,
-      name: 'UPS物流中心 (SFO)'
-    };
-
-    let deliveryPoints;
-    if (locations && locations.length > 0) {
-      deliveryPoints = locations.map((loc, i) => ({
-        id: loc.id || `point-${i}`,
-        coords: loc.coords,
-        demand: loc.demand || Math.floor(Math.random() * 10) + 1,
-        name: loc.name || `收货点 ${i + 1}`
-      }));
-    } else {
-      deliveryPoints = generateSFDeliveryPoints();
+    if (!locations || locations.length === 0) {
+      res.status(400).json({ success: false, error: '缺少配送点数据' });
+      return;
     }
 
-    const allLocations = [warehouseLocation, ...deliveryPoints];
+    const deliveryPoints = locations.map((loc, i) => ({
+      id: loc.id || `point-${i}`,
+      coords: loc.coords,
+      demand: loc.demand || 1,
+      name: loc.name || `收货点 ${i + 1}`
+    }));
+
+    const allLocations = [WAREHOUSE, ...deliveryPoints];
 
     // Build vehicle list
     let vehicleList;
@@ -330,7 +251,7 @@ app.post('/api/vrp/optimize', (req, res) => {
 
     res.json({
       success: true,
-      warehouse: warehouseLocation,
+      warehouse: WAREHOUSE,
       deliveryPoints,
       vehicles: vehicleList,
       solution: result
@@ -343,39 +264,6 @@ app.post('/api/vrp/optimize', (req, res) => {
       error: error.message || 'VRP求解失败'
     });
   }
-});
-
-/**
- * GET /api/vrp/points
- * Generate random delivery points for testing
- */
-app.get('/api/vrp/points', (req, res) => {
-  const count = parseInt(req.query.count) || 50;
-  const points = [];
-
-  const bounds = {
-    minLon: -122.52,
-    maxLon: -122.35,
-    minLat: 37.70,
-    maxLat: 37.82
-  };
-
-  for (let i = 1; i <= count; i++) {
-    const lon = bounds.minLon + Math.random() * (bounds.maxLon - bounds.minLon);
-    const lat = bounds.minLat + Math.random() * (bounds.maxLat - bounds.minLat);
-    points.push({
-      id: `point-${i}`,
-      coords: [lon, lat],
-      demand: Math.floor(Math.random() * 10) + 1,
-      name: `收货点 ${i}`
-    });
-  }
-
-  res.json({
-    success: true,
-    warehouse: WAREHOUSE,
-    points
-  });
 });
 
 /**
@@ -400,6 +288,5 @@ app.listen(PORT, () => {
   console.log(`VRP Solver service running on http://localhost:${PORT}`);
   console.log('Available endpoints:');
   console.log('  POST /api/vrp/optimize - Solve VRP');
-  console.log('  GET  /api/vrp/points   - Generate random points');
   console.log('  GET  /api/vrp/vehicles - Get vehicle config');
 });
