@@ -117,6 +117,35 @@ Get default vehicle configuration.
 
 ---
 
+## Security Notes
+
+### About Mapbox Access Token
+
+This project uses a **public token** (`pk.eyJ1...`) for Mapbox GL JS initialization. This is the standard approach recommended by Mapbox for client-side applications.
+
+**Public tokens are designed to be:**
+- Visible in client-side code
+- Used in browsers/web apps
+- Restricted by URL referrers and quota limits
+
+**Best Practices for Production:**
+
+1. **Set URL restrictions** in your [Mapbox account](https://account.mapbox.com/access-tokens/)
+   - Limit token to specific domains (e.g., `yourdomain.com`)
+   - Prevents token from being used on unauthorized sites
+
+2. **Set quota limits**
+   - Prevents abuse if token is somehow exploited
+
+3. **For higher security** (optional):
+   - Move Mapbox API calls to backend
+   - Use a secret token on the server
+   - Browser never sees the token
+
+For most applications, public token + URL restrictions is sufficient. See [Mapbox security documentation](https://docs.mapbox.com/help/troubleshooting/security-guidance/) for details.
+
+---
+
 ## Related Documentation
 
 - [物流配送路线优化方案](./物流配送路线优化方案.md) - Chinese documentation
