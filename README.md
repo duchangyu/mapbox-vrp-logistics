@@ -121,28 +121,30 @@ Get default vehicle configuration.
 
 ### About Mapbox Access Token
 
-This project uses a **public token** (`pk.eyJ1...`) for Mapbox GL JS initialization. This is the standard approach recommended by Mapbox for client-side applications.
+This project uses a **public token** (`pk.eyJ1...`) for Mapbox GL JS initialization.
 
-**Public tokens are designed to be:**
-- Visible in client-side code
-- Used in browsers/web apps
-- Restricted by URL referrers and quota limits
+**Public Tokens:**
+- Intended for client-side use (browser-based web apps)
+- Should only have **public scopes** (read-only access to styles)
+- **Visible in client-side code** - this is expected and by design
+- Can be restricted with **URL restrictions** so they only work from specified domains
+- **Compatible with Mapbox GL JS v0.53.1+**
 
-**Best Practices for Production:**
+**Secret Tokens:**
+- Must **never be exposed to the client**
+- All requests needing secret scopes should be made on a server
+- For sensitive operations, use the **Tokens API** to create a temporary token
 
-1. **Set URL restrictions** in your [Mapbox account](https://account.mapbox.com/access-tokens/)
-   - Limit token to specific domains (e.g., `yourdomain.com`)
-   - Prevents token from being used on unauthorized sites
+**Best Practices:**
 
-2. **Set quota limits**
-   - Prevents abuse if token is somehow exploited
+1. **Generate a new token** - Don't use the default public token; create one with proper scopes
+2. **Set URL restrictions** - Limit to your specific domains
+3. **Minimize scopes** - Only grant scopes necessary for the task
+4. **Isolate tokens** - Use distinct tokens per application for tracking
+5. **Rotate tokens** - If misuse is suspected, rotate immediately
+6. **Monitor usage** - Check Statistics page for anomalous patterns
 
-3. **For higher security** (optional):
-   - Move Mapbox API calls to backend
-   - Use a secret token on the server
-   - Browser never sees the token
-
-For most applications, public token + URL restrictions is sufficient. See [Mapbox security documentation](https://docs.mapbox.com/help/troubleshooting/security-guidance/) for details.
+See [Mapbox security documentation](https://docs.mapbox.com/help/dive-deeper/how-to-use-mapbox-securely/#access-tokens) for details.
 
 ---
 
