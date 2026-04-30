@@ -132,11 +132,7 @@ const VEHICLE_COLORS = [
   '#16a085', '#c0392b'
 ];
 
-const VEHICLE_CONFIG = [
-  { type: 'small', count: 4, capacity: 20 },
-  { type: 'medium', count: 4, capacity: 50 },
-  { type: 'large', count: 2, capacity: 100 },
-];
+const API_BASE = import.meta.env.VITE_VRP_API_BASE;
 
 export default {
   props: {
@@ -147,6 +143,7 @@ export default {
     return {
       warehouse: { id: 'warehouse', coords: [-122.3892, 37.6213], name: 'UPS物流中心 (SFO)' },
       deliveryPoints: [],
+      vehicleConfig: [],
       vehicles: [],
       solution: null,
       loading: false,
@@ -175,6 +172,26 @@ export default {
   },
 
   methods: {
+    async fetchVehicleConfig() {
+      try {
+        const res = await fetch(`${API_BASE}/vrp/vehicles`);
+        const data = await res.json();
+        if (data.success && data.vehicles) {
+          const typeMap = {};
+          for (const v of data.vehicles) {
+            if (!typeMap[v.type]) {
+              typeMap[v.type] = { type: v.type, count: 0, capacity: v.capacity };
+            }
+            typeMap[v.type].count++;
+          }
+          this.vehicleConfig = Object.values(typeMap);
+        }
+      } catch (err) {
+        this.errorMsg = 'Failed to load vehicle configuration from server';
+        console.error('Failed to fetch vehicle config:', err);
+      }
+    },
+
     startSelectingPoints() {
       this.isSelectingPoints = true;
       this.tempPoints = [];
@@ -214,9 +231,9 @@ export default {
       this.isSettingComplete = true;
       this.deliveryPoints = [...this.tempPoints];
 
-      // Build vehicle list
+      // Build vehicle list from server config
       this.vehicles = [];
-      for (const vt of VEHICLE_CONFIG) {
+      for (const vt of this.vehicleConfig) {
         for (let i = 0; i < vt.count; i++) {
           this.vehicles.push({
             type: vt.type,
@@ -265,7 +282,7 @@ export default {
         }
 
         // Send to VRP solver with real distance matrix for vehicle assignment
-        const res = await fetch('http://localhost:3001/api/vrp/optimize', {
+        const res = await fetch(`${API_BASE}/vrp/optimize`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -580,6 +597,7 @@ export default {
   },
 
   mounted() {
+    this.fetchVehicleConfig();
     this.loadState();
   },
 
