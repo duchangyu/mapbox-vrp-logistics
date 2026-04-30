@@ -33,17 +33,7 @@ A logistics delivery route planning system built with Vue.js, Mapbox APIs, and V
 
 ## Quick Start
 
-### 1. Start VRP Solver Backend
-
-```bash
-cd server
-npm install
-node vrp-solver.js
-```
-
-Backend runs on http://localhost:3001
-
-### 2. Start Frontend
+### 1. Start Frontend
 
 ```bash
 npm install
@@ -52,7 +42,7 @@ npm run dev
 
 Open http://localhost:5173
 
-### 3. Use the App
+### 2. Use the App
 
 1. Click "Logistics" tab
 2. Click "Start Setting Points" and click on map to add delivery points
@@ -75,8 +65,6 @@ mapbox-vue-app/
 │   │   └── index.js              # i18n configuration
 │   ├── App.vue                   # Main app with tabs
 │   └── main.js                   # App entry point
-└── server/
-    └── vrp-solver.js             # VRP solver backend
 ```
 
 ---
@@ -93,30 +81,25 @@ mapbox-vue-app/
 
 ## TODO
 
-- [ ] **Prioritize large vehicles for better economy** — Currently the greedy assignment picks the vehicle with shortest duration. Consider prioritizing large vehicles first to reduce total number of vehicles used and lower cost.
-- [ ] **Cluster nearby points before assignment** — Location indices are sorted by demand but not by geography. Nearby points should be clustered first to avoid multiple vehicles making duplicate trips to the same area.
+- [ ] ~~Prioritize large vehicles for better economy~~ — Now handled by Mapbox Optimization API natively
+- [ ] ~~Cluster nearby points before assignment~~ — Now handled by Mapbox Optimization API natively
+
+---
+
+## Architecture
+
+This app uses **Mapbox Optimization API v2** for all VRP solving. There is no backend solver — the frontend sends jobs and vehicles directly to Mapbox, which handles route optimization including capacity constraints, multi-vehicle assignment, and road-matched geometry.
+
+**Previous architecture** (now removed):
+- Backend VRP solver with greedy + 2-opt algorithm
+- Mapbox Matrix API for distance matrix
+- Mapbox Directions API for road geometry
 
 ---
 
 ## API Endpoints
 
-### POST /api/vrp/optimize
-
-Solve VRP problem with given locations and vehicles.
-
-**Request Body:**
-```json
-{
-  "locations": [...],
-  "vehicles": [...],
-  "durations": [[...]],
-  "distances": [[...]]
-}
-```
-
-### GET /api/vrp/vehicles
-
-Get default vehicle configuration.
+This project no longer uses a backend VRP solver. All optimization is done client-side via the **Mapbox Optimization API v2**.
 
 ---
 

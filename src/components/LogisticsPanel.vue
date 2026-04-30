@@ -132,7 +132,12 @@ const VEHICLE_COLORS = [
   '#16a085', '#c0392b'
 ];
 
-const API_BASE = import.meta.env.VITE_VRP_API_BASE;
+// Embedded vehicle config (previously served by backend)
+const VEHICLE_CONFIG = [
+  { type: 'small', count: 4, capacity: 50 },
+  { type: 'medium', count: 4, capacity: 100 },
+  { type: 'large', count: 2, capacity: 200 },
+];
 
 export default {
   props: {
@@ -172,24 +177,9 @@ export default {
   },
 
   methods: {
-    async fetchVehicleConfig() {
-      try {
-        const res = await fetch(`${API_BASE}/vrp/vehicles`);
-        const data = await res.json();
-        if (data.success && data.vehicles) {
-          const typeMap = {};
-          for (const v of data.vehicles) {
-            if (!typeMap[v.type]) {
-              typeMap[v.type] = { type: v.type, count: 0, capacity: v.capacity };
-            }
-            typeMap[v.type].count++;
-          }
-          this.vehicleConfig = Object.values(typeMap);
-        }
-      } catch (err) {
-        this.errorMsg = 'Failed to load vehicle configuration from server';
-        console.error('Failed to fetch vehicle config:', err);
-      }
+    fetchVehicleConfig() {
+      // Use embedded config (previously fetched from backend)
+      this.vehicleConfig = [...VEHICLE_CONFIG];
     },
 
     startSelectingPoints() {
@@ -268,41 +258,41 @@ export default {
       this.clearRoutes();
 
       try {
-        // Get distance matrix from Mapbox Matrix API for vehicle assignment
-        const allPoints = [this.warehouse, ...this.deliveryPoints];
-        const coordsStr = allPoints.map(p => p.coords.join(',')).join(';');
+        // Build Mapbox Optimization API v2 request
+        const jobs = this.deliveryPoints.map((p, i) => ({
+          id: String(i + 1),
+          coordinates: p.coords,
+          demand: { units: p.demand || 1 }
+        }));
 
-        const matrixUrl = `https://api.mapbox.com/directions-matrix/v1/mapbox/driving/${coordsStr}?annotations=duration,distance&access_token=${mapboxgl.accessToken}`;
+        const vehicles = this.vehicles.map((v, i) => ({
+          id: String(i + 1),
+          type: v.type,
+          capacities: { units: v.capacity },
+          start_coordinate: this.warehouse.coords,
+          end_coordinate: this.warehouse.coords
+        }));
 
-        const matrixRes = await fetch(matrixUrl);
-        const matrixData = await matrixRes.json();
-
-        if (matrixData.code !== 'Ok') {
-          throw new Error(matrixData.message || '获取距离矩阵失败');
-        }
-
-        // Send to VRP solver with real distance matrix for vehicle assignment
-        const res = await fetch(`${API_BASE}/vrp/optimize`, {
+        const optUrl = `https://api.mapbox.com/optimization/v2?access_token=${mapboxgl.accessToken}`;
+        const optRes = await fetch(optUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            locations: this.deliveryPoints,
-            vehicles: this.vehicles,
-            durations: matrixData.durations,
-            distances: matrixData.distances
-          })
+          body: JSON.stringify({ jobs, vehicles })
         });
 
-        const data = await res.json();
-
-        if (!data.success) {
-          throw new Error(data.error || 'VRP求解失败');
+        if (!optRes.ok) {
+          const errText = await optRes.text();
+          throw new Error(errText || `Optimization API error: ${optRes.status}`);
         }
 
-        this.solution = data.solution;
+        const optData = await optRes.json();
 
-        // Use Mapbox Directions API to get actual road-matching geometry for each route
-        await this.optimizeVehicleRoutes(this.solution);
+        if (!optData.routes || optData.routes.length === 0) {
+          throw new Error(optData.message || '优化求解失败');
+        }
+
+        // Transform Mapbox response to our solution format
+        this.solution = this.transformOptimizationResult(optData, this.deliveryPoints, this.vehicles, this.warehouse);
 
         this.displayRoutesOnMap(this.solution);
         this.displayPointsOnMap(this.solution);
@@ -320,43 +310,38 @@ export default {
       }
     },
 
-    async optimizeVehicleRoutes(solution) {
-      // For each vehicle's route, get actual driving geometry from Directions API
-      for (const route of solution.routes) {
-        if (route.stops.length <= 2) continue;
+    transformOptimizationResult(optData, deliveryPoints, vehicles, warehouse) {
+      const pointIndexMap = {};
+      deliveryPoints.forEach((p, i) => { pointIndexMap[p.id] = i; });
 
-        // Build coordinates: warehouse -> assigned stops -> warehouse (return)
-        const coords = [
-          this.warehouse.coords,
-          ...route.stops.slice(1, -1).map(s => s.coords),
-          this.warehouse.coords
-        ];
-        const coordsStr = coords.map(c => c.join(',')).join(';');
-
-        console.log('Getting route for vehicle', route.vehicleId, 'with', coords.length, 'stops:', coordsStr);
-
-        // Use Directions API for proper road-matching geometry
-        const directionsUrl = `https://api.mapbox.com/directions/v5/mapbox/driving/${coordsStr}?geometries=geojson&overview=full&steps=true&access_token=${mapboxgl.accessToken}`;
-
-        try {
-          const res = await fetch(directionsUrl);
-          const data = await res.json();
-
-          console.log('Directions result for vehicle', route.vehicleId, ':', data.code, data.routes ? 'has routes' : 'no routes');
-
-          if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
-            // Update route with actual driving geometry
-            route.geometry = data.routes[0].geometry;
-            route.distance = data.routes[0].distance / 1000; // km
-            route.duration = data.routes[0].duration / 60; // minutes
-            console.log('Got geometry, coords count:', data.routes[0].geometry.coordinates.length);
-          } else {
-            console.error('Directions failed:', data.message || data.code);
+      const routes = optData.routes.map((route, idx) => {
+        const stops = route.stops.map((stop, stopIdx) => {
+          if (stop.type === 'start' || stop.type === 'end') {
+            return { index: -1, id: 'warehouse', coords: warehouse.coords, name: warehouse.name, demand: 0, sequence: stopIdx };
           }
-        } catch (err) {
-          console.error('Failed to get route for vehicle', route.vehicleId, err);
-        }
-      }
+          const jobId = parseInt(stop.job_id) - 1;
+          const point = deliveryPoints[jobId];
+          return { index: jobId, id: point.id, coords: point.coords, name: point.name, demand: point.demand || 1, sequence: stopIdx };
+        });
+
+        return {
+          vehicleId: idx,
+          vehicleType: vehicles[idx]?.type || 'unknown',
+          capacity: vehicles[idx]?.capacity || 0,
+          load: route.stops.filter(s => s.type !== 'start' && s.type !== 'end').reduce((sum, s) => sum + (deliveryPoints[parseInt(s.job_id) - 1]?.demand || 1), 0),
+          distance: route.distance / 1000,
+          duration: route.duration / 60,
+          geometry: route.geometry,
+          stops
+        };
+      });
+
+      return {
+        routes,
+        totalDistance: optData.routes.reduce((sum, r) => sum + (r.distance || 0), 0) / 1000,
+        totalDuration: optData.routes.reduce((sum, r) => sum + (r.duration || 0), 0) / 60,
+        totalDemand: deliveryPoints.reduce((sum, p) => sum + (p.demand || 1), 0)
+      };
     },
 
     displayPointsOnMap(solution = null) {
