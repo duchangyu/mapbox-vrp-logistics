@@ -85,9 +85,16 @@ mapbox-vue-app/
 
 | Type   | Count | Capacity |
 |--------|-------|----------|
-| Small  | 4     | 20 kg    |
-| Medium | 4     | 50 kg    |
-| Large  | 2     | 100 kg   |
+| Small  | 4     | 50 kg    |
+| Medium | 4     | 100 kg   |
+| Large  | 2     | 200 kg   |
+
+---
+
+## TODO
+
+- [ ] **Prioritize large vehicles for better economy** — Currently the greedy assignment picks the vehicle with shortest duration. Consider prioritizing large vehicles first to reduce total number of vehicles used and lower cost.
+- [ ] **Cluster nearby points before assignment** — Location indices are sorted by demand but not by geography. Nearby points should be clustered first to avoid multiple vehicles making duplicate trips to the same area.
 
 ---
 
@@ -106,10 +113,6 @@ Solve VRP problem with given locations and vehicles.
   "distances": [[...]]
 }
 ```
-
-### GET /api/vrp/points?count=50
-
-Generate random delivery points for testing.
 
 ### GET /api/vrp/vehicles
 
