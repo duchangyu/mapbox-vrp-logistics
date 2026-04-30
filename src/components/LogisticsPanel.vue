@@ -301,7 +301,7 @@ export default {
 
         this.solution = data.solution;
 
-        // Use Mapbox Optimization API to find optimal stop order for each vehicle
+        // Use Mapbox Directions API to get actual road-matching geometry for each route
         await this.optimizeVehicleRoutes(this.solution);
 
         this.displayRoutesOnMap(this.solution);
