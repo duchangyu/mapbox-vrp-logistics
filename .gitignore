@@ -34,3 +34,6 @@ coverage
 
 # OMC runtime
 .omc/
+
+# Intlayer generated cache
+.intlayer/

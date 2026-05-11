@@ -1,4 +1,12 @@
 {
+  "language": {
+    "label": "Language",
+    "en": "English",
+    "zh": "Chinese",
+    "de": "German",
+    "ja": "Japanese",
+    "fr": "French"
+  },
   "tab": {
     "route": "3-Point Route",
     "matrix": "Time Matrix",
@@ -12,7 +20,88 @@
     "duration": "Duration",
     "reset": "Reset",
     "hours": "h",
-    "minutes": "min"
+    "minutes": "min",
+    "pointPopup": "Point {n}",
+    "noRouteFound": "No viable route found. Please choose different points.",
+    "fetchFailed": "Failed to fetch route. Please try again."
+  },
+  "matrix": {
+    "presetsLabel": "Presets",
+    "originsLabel": "Origins (one per line)",
+    "destinationsLabel": "Destinations (one per line)",
+    "originsPlaceholder": "Example:\nTiananmen Square, Beijing\nBeijing West Railway Station",
+    "destinationsPlaceholder": "Example:\nBeijing Capital Airport\nBeijing South Railway Station",
+    "calculating": "Calculating...",
+    "calculate": "Calculate Matrix",
+    "unreachable": "Unreachable",
+    "originPopup": "Origin: {name}",
+    "destinationPopup": "Destination: {name}",
+    "geocodeNotFound": "Could not find: {query}",
+    "missingInputs": "Please enter at least one origin and one destination",
+    "calculationFailed": "Matrix calculation failed. Please check the input.",
+    "seconds": "sec",
+    "presets": {
+      "landmarks": "Landmarks",
+      "transit": "Transit",
+      "neighborhoods": "Neighborhoods",
+      "tech": "Tech"
+    }
+  },
+  "optimization": {
+    "presetsLabel": "Presets",
+    "startLabel": "Start",
+    "startPlaceholder": "Example: SFO Airport",
+    "waypointsLabel": "Waypoints (one per line)",
+    "waypointsPlaceholder": "Example:\nAlcatraz Island\nTwin Peaks\nOracle Park",
+    "optimizing": "Optimizing...",
+    "calculate": "Calculate Best Route",
+    "optimalOrder": "Optimal Visit Order",
+    "totalDistance": "Total Distance",
+    "totalDuration": "Total Duration",
+    "geocodeNotFound": "Could not find: {query}",
+    "missingStart": "Please enter a start point",
+    "missingWaypoints": "Please enter at least one waypoint",
+    "markerStart": "Start",
+    "markerWaypoint": "Waypoint {n}",
+    "apiFailed": "Optimization API failed: {error}",
+    "optimizationFailed": "Optimization failed. Please try again.",
+    "noRouteFound": "No route found in optimization result",
+    "presets": {
+      "landmarks": "Landmarks",
+      "transit": "Transit",
+      "neighborhoods": "Neighborhoods",
+      "tech": "Tech"
+    }
+  },
+  "mapmatching": {
+    "presetsLabel": "Presets",
+    "coordinatesLabel": "Raw coordinates (one per line: longitude,latitude)",
+    "coordinatesPlaceholder": "Example:\n-122.4194,37.7749\n-122.4089,37.7849\n-122.3989,37.7949",
+    "tidy": "Clean noisy points (tidy)",
+    "annotations": "Show duration details",
+    "matching": "Matching...",
+    "start": "Start Map Matching",
+    "result": "Match Result",
+    "confidence": "Confidence",
+    "matchedDistance": "Matched Distance",
+    "totalDuration": "Total Duration",
+    "originalPoints": "Original Points",
+    "legs": "Leg Details",
+    "segment": "Leg {n}",
+    "minCoordinates": "Please enter at least 2 coordinate points",
+    "maxCoordinates": "A maximum of 100 coordinate points is supported",
+    "originalPointPopup": "Original point {n}",
+    "apiFailed": "Map Matching API failed: {error}",
+    "failed": "Map matching failed. Please try again.",
+    "noMatchingRoute": "No matching route found",
+    "presets": {
+      "sanFranciscoTrip": "San Francisco Trip",
+      "gpsTrace": "GPS Trace",
+      "highway101": "Highway 101",
+      "stanford": "Stanford Campus",
+      "timesSquare": "Times Square",
+      "gpsDrift": "GPS Drift"
+    }
   },
   "logistics": {
     "startSetting": "Start Setting Points",
@@ -39,7 +128,13 @@
     "medium": "Medium",
     "large": "Large",
     "load": "Load",
-    "noRoute": "No route"
+    "noRoute": "No route",
+    "warehouseName": "UPS Logistics Center (SFO)",
+    "deliveryPointName": "Delivery Point {n}",
+    "demandPopup": "{name} (Demand: {demand})",
+    "vehicleConfigFailed": "Failed to load vehicle configuration from server",
+    "distanceMatrixFailed": "Failed to fetch distance matrix",
+    "solverFailed": "VRP solver failed"
   },
   "errors": {
     "noPoints": "Please generate delivery points first",

@@ -1,27 +1,27 @@
 <template>
   <div class="optimization-panel">
     <div class="presets">
-      <label>快速预设</label>
+      <label>{{ $t('optimization.presetsLabel') }}</label>
       <div class="preset-buttons">
-        <button v-for="(p, i) in presets" :key="i" @click="applyPreset(p)">{{ p.label }}</button>
+        <button v-for="(p, i) in presets" :key="i" @click="applyPreset(p)">{{ $t(p.labelKey) }}</button>
       </div>
     </div>
 
     <div class="input-section">
       <div class="input-group">
-        <label>起点</label>
-        <input v-model="startPoint" type="text" placeholder="例如：SFO机场" />
+        <label>{{ $t('optimization.startLabel') }}</label>
+        <input v-model="startPoint" type="text" :placeholder="$t('optimization.startPlaceholder')" />
       </div>
       <div class="input-group">
-        <label>途经点（每行一个）</label>
+        <label>{{ $t('optimization.waypointsLabel') }}</label>
         <textarea
           v-model="waypointsText"
-          placeholder="例如：&#10;Alcatraz Island&#10;Twin Peaks&#10;Oracle Park"
+          :placeholder="$t('optimization.waypointsPlaceholder')"
           rows="6"
         ></textarea>
       </div>
       <button class="btn-calc" @click="optimize" :disabled="loading">
-        {{ loading ? "优化中..." : "计算最优路线" }}
+        {{ loading ? $t('optimization.optimizing') : $t('optimization.calculate') }}
       </button>
     </div>
 
@@ -29,7 +29,7 @@
 
     <div class="result-section" v-if="optimizedRoute">
       <div class="route-summary">
-        <h4>最优访问顺序</h4>
+        <h4>{{ $t('optimization.optimalOrder') }}</h4>
         <div class="waypoint-list">
           <div
             v-for="(stop, idx) in optimizedRoute.stops"
@@ -44,8 +44,8 @@
           </div>
         </div>
         <div class="total-info">
-          <span>总距离: {{ optimizedRoute.totalDistance }}</span>
-          <span>总耗时: {{ optimizedRoute.totalDuration }}</span>
+          <span>{{ $t('optimization.totalDistance') }}: {{ optimizedRoute.totalDistance }}</span>
+          <span>{{ $t('optimization.totalDuration') }}: {{ optimizedRoute.totalDuration }}</span>
         </div>
       </div>
     </div>
@@ -72,22 +72,22 @@ export default {
       routeLayerIds: ["optimized-route-casing", "optimized-route-line"],
       presets: [
         {
-          label: "Landmarks",
+          labelKey: "optimization.presets.landmarks",
           start: "San Francisco International Airport",
           waypoints: "Alcatraz Island, San Francisco\nTwin Peaks, San Francisco\nOracle Park, San Francisco",
         },
         {
-          label: "Transit",
+          labelKey: "optimization.presets.transit",
           start: "San Francisco International Airport",
           waypoints: "Embarcadero Station, San Francisco\nPowell Street Station, San Francisco\nMoscone Center, San Francisco",
         },
         {
-          label: "Neighborhoods",
+          labelKey: "optimization.presets.neighborhoods",
           start: "Mission District, San Francisco",
           waypoints: "Castro District, San Francisco\nHaight-Ashbury, San Francisco\nMarina District, San Francisco\nNob Hill, San Francisco",
         },
         {
-          label: "Tech",
+          labelKey: "optimization.presets.tech",
           start: "Salesforce Tower, San Francisco",
           waypoints: "Twitter HQ, San Francisco\nUber HQ, San Francisco\nLinkedIn HQ, San Francisco\nAirbnb HQ, San Francisco\nStripe HQ, San Francisco",
         },
@@ -101,7 +101,7 @@ export default {
       const res = await fetch(url);
       const data = await res.json();
       if (!data.features || data.features.length === 0) {
-        throw new Error(`无法找到: ${query}`);
+        throw new Error(this.$t('optimization.geocodeNotFound', { query }));
       }
       return {
         name: data.features[0].place_name.split(",")[0],
@@ -114,11 +114,11 @@ export default {
       const waypoints = this.waypointsText.trim().split("\n").filter(Boolean);
 
       if (!start) {
-        this.errorMsg = "请输入起点";
+        this.errorMsg = this.$t('optimization.missingStart');
         return;
       }
       if (waypoints.length === 0) {
-        this.errorMsg = "请输入至少一个途经点";
+        this.errorMsg = this.$t('optimization.missingWaypoints');
         return;
       }
 
@@ -135,10 +135,10 @@ export default {
         ]);
 
         // Add markers for all points
-        this.addMarker(startGeo.coords, startGeo.name, "#e74c3c", "起点");
+        this.addMarker(startGeo.coords, startGeo.name, "#e74c3c", this.$t('optimization.markerStart'));
 
         waypointGeos.forEach((g, i) => {
-          this.addMarker(g.coords, g.name, "#3498db", `途经${i + 1}`);
+          this.addMarker(g.coords, g.name, "#3498db", this.$t('optimization.markerWaypoint', { n: i + 1 }));
         });
 
         // Fit bounds
@@ -168,7 +168,7 @@ export default {
         }
 
       } catch (err) {
-        this.errorMsg = err.message || "优化失败，请重试";
+        this.errorMsg = err.message || this.$t('optimization.optimizationFailed');
       } finally {
         this.loading = false;
       }
@@ -191,13 +191,13 @@ export default {
 
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(`Optimization API failed: ${errorText}`);
+        throw new Error(this.$t('optimization.apiFailed', { error: errorText }));
       }
 
       const data = await response.json();
 
       if (data.code !== "Ok") {
-        throw new Error(data.message || "Optimization failed");
+        throw new Error(data.message || this.$t('optimization.optimizationFailed'));
       }
 
       return this.parseOptimizationResult(data, start, waypoints);
@@ -205,7 +205,7 @@ export default {
 
     parseOptimizationResult(data, start, waypoints) {
       if (!data.trips || data.trips.length === 0) {
-        throw new Error("No route found in optimization result");
+        throw new Error(this.$t('optimization.noRouteFound'));
       }
 
       const trip = data.trips[0];

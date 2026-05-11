@@ -187,7 +187,7 @@ export default {
           this.vehicleConfig = Object.values(typeMap);
         }
       } catch (err) {
-        this.errorMsg = 'Failed to load vehicle configuration from server';
+        this.errorMsg = this.$t('logistics.vehicleConfigFailed');
         console.error('Failed to fetch vehicle config:', err);
       }
     },
@@ -205,7 +205,7 @@ export default {
           id: `point-${idx}`,
           coords,
           demand: Math.floor(Math.random() * 10) + 1, // Random demand 1-10
-          name: `收货点 ${idx}`
+          name: this.$t('logistics.deliveryPointName', { n: idx })
         });
 
         // Add temporary marker
@@ -278,7 +278,7 @@ export default {
         const matrixData = await matrixRes.json();
 
         if (matrixData.code !== 'Ok') {
-          throw new Error(matrixData.message || '获取距离矩阵失败');
+          throw new Error(matrixData.message || this.$t('logistics.distanceMatrixFailed'));
         }
 
         // Send to VRP solver with real distance matrix for vehicle assignment
@@ -296,7 +296,7 @@ export default {
         const data = await res.json();
 
         if (!data.success) {
-          throw new Error(data.error || 'VRP求解失败');
+          throw new Error(data.error || this.$t('logistics.solverFailed'));
         }
 
         this.solution = data.solution;
@@ -379,7 +379,7 @@ export default {
       // Add warehouse marker
       const warehouseMarker = new mapboxgl.Marker({ color: '#3498db', scale: 1.2 })
         .setLngLat(this.warehouse.coords)
-        .setPopup(new mapboxgl.Popup().setText(this.warehouse.name))
+        .setPopup(new mapboxgl.Popup().setText(this.$t('logistics.warehouseName')))
         .addTo(this.map);
       this.markers.push(warehouseMarker);
 
@@ -389,7 +389,7 @@ export default {
         const color = pointColorMap[point.id] || '#e74c3c';
         const marker = new mapboxgl.Marker({ color, scale: 0.8 })
           .setLngLat(point.coords)
-          .setPopup(new mapboxgl.Popup().setText(`${point.name} (需求: ${point.demand})`))
+          .setPopup(new mapboxgl.Popup().setText(this.$t('logistics.demandPopup', { name: point.name, demand: point.demand })))
           .addTo(this.map);
         this.pointMarkers.push(marker);
         this.pointMarkerMap[point.id] = marker;
@@ -561,7 +561,7 @@ export default {
         deliveryPoints: this.deliveryPoints,
         vehicles: this.vehicles,
         solution: this.solution,
-        warehouse: this.warehouse
+        warehouse: { ...this.warehouse, name: this.$t('logistics.warehouseName') }
       };
       localStorage.setItem('logistics-state', JSON.stringify(state));
     },

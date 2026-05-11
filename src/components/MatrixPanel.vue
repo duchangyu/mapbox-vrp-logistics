@@ -1,30 +1,30 @@
 <template>
   <div class="matrix-panel">
     <div class="presets">
-      <label>快速预设</label>
+      <label>{{ $t('matrix.presetsLabel') }}</label>
       <div class="preset-buttons">
-        <button v-for="(p, i) in presets" :key="i" @click="applyPreset(p)">{{ p.label }}</button>
+        <button v-for="(p, i) in presets" :key="i" @click="applyPreset(p)">{{ $t(p.labelKey) }}</button>
       </div>
     </div>
     <div class="input-section">
       <div class="input-group">
-        <label>起点（每行一个）</label>
+        <label>{{ $t('matrix.originsLabel') }}</label>
         <textarea
           v-model="originsText"
-          placeholder="例如：&#10;北京天安门&#10;北京西站"
+          :placeholder="$t('matrix.originsPlaceholder')"
           rows="3"
         ></textarea>
       </div>
       <div class="input-group">
-        <label>终点（每行一个）</label>
+        <label>{{ $t('matrix.destinationsLabel') }}</label>
         <textarea
           v-model="destinationsText"
-          placeholder="例如：&#10;北京首都机场&#10;北京南站"
+          :placeholder="$t('matrix.destinationsPlaceholder')"
           rows="3"
         ></textarea>
       </div>
       <button class="btn-calc" @click="calculate" :disabled="loading">
-        {{ loading ? "计算中..." : "计算时间矩阵" }}
+        {{ loading ? $t('matrix.calculating') : $t('matrix.calculate') }}
       </button>
     </div>
 
@@ -46,7 +46,7 @@
                 <span class="time">{{ formatDuration(cell) }}</span>
                 <span class="dist">{{ formatDistance(matrixData.distanceRows[i][j]) }}</span>
               </template>
-              <template v-else>不可达</template>
+              <template v-else>{{ $t('matrix.unreachable') }}</template>
             </td>
           </tr>
         </tbody>
@@ -73,22 +73,22 @@ export default {
       markers: [],
       presets: [
         {
-          label: "Landmarks",
+          labelKey: "matrix.presets.landmarks",
           origins: "Fisherman's Wharf, San Francisco\nGolden Gate Bridge, San Francisco\nChinatown, San Francisco",
           destinations: "Alcatraz Island, San Francisco\nTwin Peaks, San Francisco\nOracle Park, San Francisco",
         },
         {
-          label: "Transit",
+          labelKey: "matrix.presets.transit",
           origins: "San Francisco International Airport\nEmbarcadero Station, San Francisco\nCaltrain San Francisco Station",
           destinations: "Ferry Building, San Francisco\nPowell Street Station, San Francisco\nMoscone Center, San Francisco",
         },
         {
-          label: "Neighborhoods",
+          labelKey: "matrix.presets.neighborhoods",
           origins: "Mission District, San Francisco\nCastro District, San Francisco\nHaight-Ashbury, San Francisco",
           destinations: "Marina District, San Francisco\nNob Hill, San Francisco\nSunset District, San Francisco",
         },
         {
-          label: "Tech",
+          labelKey: "matrix.presets.tech",
           origins: "Salesforce Tower, San Francisco\nTwitter HQ, San Francisco\nUber HQ, San Francisco",
           destinations: "LinkedIn HQ, San Francisco\nAirbnb HQ, San Francisco\nStripe HQ, San Francisco",
         },
@@ -102,7 +102,7 @@ export default {
       const res = await fetch(url);
       const data = await res.json();
       if (!data.features || data.features.length === 0) {
-        throw new Error(`无法找到: ${query}`);
+        throw new Error(this.$t('matrix.geocodeNotFound', { query }));
       }
       return {
         name: data.features[0].place_name.split(",")[0],
@@ -115,7 +115,7 @@ export default {
       const destinations = this.destinationsText.trim().split("\n").filter(Boolean);
 
       if (origins.length === 0 || destinations.length === 0) {
-        this.errorMsg = "请输入至少一个起点和一个终点";
+        this.errorMsg = this.$t('matrix.missingInputs');
         return;
       }
 
@@ -134,7 +134,7 @@ export default {
         geoOrigins.forEach((g, i) => {
           const marker = new mapboxgl.Marker({ color: "#e74c3c" })
             .setLngLat(g.coords)
-            .setPopup(new mapboxgl.Popup().setText(`起点: ${g.name}`))
+            .setPopup(new mapboxgl.Popup().setText(this.$t('matrix.originPopup', { name: g.name })))
             .addTo(this.map);
           this.markers.push(marker);
         });
@@ -142,7 +142,7 @@ export default {
         geoDests.forEach((g) => {
           const marker = new mapboxgl.Marker({ color: "#2ecc71" })
             .setLngLat(g.coords)
-            .setPopup(new mapboxgl.Popup().setText(`终点: ${g.name}`))
+            .setPopup(new mapboxgl.Popup().setText(this.$t('matrix.destinationPopup', { name: g.name })))
             .addTo(this.map);
           this.markers.push(marker);
         });
@@ -163,7 +163,7 @@ export default {
         const data = await res.json();
 
         if (data.code !== "Ok" || !data.durations) {
-          throw new Error(data.message || "矩阵计算失败，请检查输入");
+          throw new Error(data.message || this.$t('matrix.calculationFailed'));
         }
 
         const durationRows = geoOrigins.map((_o, i) =>
@@ -187,18 +187,18 @@ export default {
           distanceRows,
         };
       } catch (err) {
-        this.errorMsg = err.message || "计算失败，请重试";
+        this.errorMsg = err.message || this.$t('errors.calculationFailed');
       } finally {
         this.loading = false;
       }
     },
 
     formatDuration(seconds) {
-      if (seconds < 60) return `${Math.round(seconds)} 秒`;
+      if (seconds < 60) return `${Math.round(seconds)} ${this.$t('matrix.seconds')}`;
       const h = Math.floor(seconds / 3600);
       const m = Math.floor((seconds % 3600) / 60);
       if (h > 0) return `${h}h${m}m`;
-      return `${m} 分钟`;
+      return `${m} ${this.$t('route.minutes')}`;
     },
 
     formatDistance(meters) {

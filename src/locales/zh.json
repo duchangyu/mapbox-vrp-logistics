@@ -1,4 +1,12 @@
 {
+  "language": {
+    "label": "语言",
+    "en": "英语",
+    "zh": "中文",
+    "de": "德语",
+    "ja": "日语",
+    "fr": "法语"
+  },
   "tab": {
     "route": "3点路线",
     "matrix": "时间矩阵",
@@ -12,7 +20,88 @@
     "duration": "预计时间",
     "reset": "重新选择",
     "hours": "小时",
-    "minutes": "分钟"
+    "minutes": "分钟",
+    "pointPopup": "点 {n}",
+    "noRouteFound": "未找到可行路线，请选择其他点",
+    "fetchFailed": "获取路线失败，请重试"
+  },
+  "matrix": {
+    "presetsLabel": "快速预设",
+    "originsLabel": "起点（每行一个）",
+    "destinationsLabel": "终点（每行一个）",
+    "originsPlaceholder": "例如：\n北京天安门\n北京西站",
+    "destinationsPlaceholder": "例如：\n北京首都机场\n北京南站",
+    "calculating": "计算中...",
+    "calculate": "计算时间矩阵",
+    "unreachable": "不可达",
+    "originPopup": "起点: {name}",
+    "destinationPopup": "终点: {name}",
+    "geocodeNotFound": "无法找到: {query}",
+    "missingInputs": "请输入至少一个起点和一个终点",
+    "calculationFailed": "矩阵计算失败，请检查输入",
+    "seconds": "秒",
+    "presets": {
+      "landmarks": "地标",
+      "transit": "交通",
+      "neighborhoods": "街区",
+      "tech": "科技公司"
+    }
+  },
+  "optimization": {
+    "presetsLabel": "快速预设",
+    "startLabel": "起点",
+    "startPlaceholder": "例如：SFO机场",
+    "waypointsLabel": "途经点（每行一个）",
+    "waypointsPlaceholder": "例如：\nAlcatraz Island\nTwin Peaks\nOracle Park",
+    "optimizing": "优化中...",
+    "calculate": "计算最优路线",
+    "optimalOrder": "最优访问顺序",
+    "totalDistance": "总距离",
+    "totalDuration": "总耗时",
+    "geocodeNotFound": "无法找到: {query}",
+    "missingStart": "请输入起点",
+    "missingWaypoints": "请输入至少一个途经点",
+    "markerStart": "起点",
+    "markerWaypoint": "途经{n}",
+    "apiFailed": "Optimization API 失败: {error}",
+    "optimizationFailed": "优化失败，请重试",
+    "noRouteFound": "优化结果中未找到路线",
+    "presets": {
+      "landmarks": "地标",
+      "transit": "交通",
+      "neighborhoods": "街区",
+      "tech": "科技公司"
+    }
+  },
+  "mapmatching": {
+    "presetsLabel": "快速预设",
+    "coordinatesLabel": "原始坐标（每行: 经度,纬度）",
+    "coordinatesPlaceholder": "例如：\n-122.4194,37.7749\n-122.4089,37.7849\n-122.3989,37.7949",
+    "tidy": "清理杂点 (tidy)",
+    "annotations": "显示耗时信息",
+    "matching": "匹配中...",
+    "start": "开始地图匹配",
+    "result": "匹配结果",
+    "confidence": "置信度",
+    "matchedDistance": "匹配距离",
+    "totalDuration": "总耗时",
+    "originalPoints": "原始点数",
+    "legs": "分段信息",
+    "segment": "段 {n}",
+    "minCoordinates": "请输入至少2个坐标点",
+    "maxCoordinates": "最多支持100个坐标点",
+    "originalPointPopup": "原始点 {n}",
+    "apiFailed": "Map Matching API 失败: {error}",
+    "failed": "匹配失败，请重试",
+    "noMatchingRoute": "未找到匹配路线",
+    "presets": {
+      "sanFranciscoTrip": "旧金山行程",
+      "gpsTrace": "GPS轨迹示例",
+      "highway101": "沿101号公路",
+      "stanford": "斯坦福校园",
+      "timesSquare": "纽约时代广场",
+      "gpsDrift": "GPS漂移模拟"
+    }
   },
   "logistics": {
     "startSetting": "开始设置收货点",
@@ -39,7 +128,13 @@
     "medium": "中型车",
     "large": "大型车",
     "load": "载货量",
-    "noRoute": "无路线"
+    "noRoute": "无路线",
+    "warehouseName": "UPS物流中心 (SFO)",
+    "deliveryPointName": "收货点 {n}",
+    "demandPopup": "{name} (需求: {demand})",
+    "vehicleConfigFailed": "从服务器加载车辆配置失败",
+    "distanceMatrixFailed": "获取距离矩阵失败",
+    "solverFailed": "VRP求解失败"
   },
   "errors": {
     "noPoints": "请先生成收货点",

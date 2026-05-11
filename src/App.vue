@@ -11,6 +11,17 @@
       <button :class="{ active: mode === 'logistics' }" @click="switchMode('logistics')">{{ $t('tab.logistics') }}</button>
     </div>
 
+    <label class="locale-switcher">
+      <span>{{ $t('language.label') }}</span>
+      <select :value="$i18n.locale" @change="setLocale($event.target.value)">
+        <option value="en">{{ $t('language.en') }}</option>
+        <option value="zh">{{ $t('language.zh') }}</option>
+        <option value="de">{{ $t('language.de') }}</option>
+        <option value="ja">{{ $t('language.ja') }}</option>
+        <option value="fr">{{ $t('language.fr') }}</option>
+      </select>
+    </label>
+
     <!-- Route mode panel -->
     <div class="control-panel" v-if="mode === 'route'">
       <div class="status" v-if="waypoints.length < 3">
@@ -74,6 +85,11 @@ export default {
   },
 
   mounted() {
+    const savedLocale = localStorage.getItem('locale');
+    if (savedLocale && ['en', 'zh', 'de', 'ja', 'fr'].includes(savedLocale)) {
+      this.$i18n.locale = savedLocale;
+    }
+
     const map = new mapboxgl.Map({
       container: this.$refs.mapContainer,
       style: "mapbox://styles/mapbox/standard",
@@ -121,7 +137,7 @@ export default {
 
       const marker = new mapboxgl.Marker({ color: MARKER_COLORS[this.waypoints.length - 1] })
         .setLngLat(coords)
-        .setPopup(new mapboxgl.Popup().setText(`点 ${this.waypoints.length}`))
+        .setPopup(new mapboxgl.Popup().setText(this.$t('route.pointPopup', { n: this.waypoints.length })))
         .addTo(map);
       this.markers.push(marker);
 
@@ -147,7 +163,7 @@ export default {
         const data = await res.json();
 
         if (!data.routes || data.routes.length === 0) {
-          alert("未找到可行路线，请选择其他点");
+          alert(this.$t('route.noRouteFound'));
           this.resetWaypoints();
           return;
         }
@@ -166,15 +182,20 @@ export default {
         this.map.fitBounds(bounds, { padding: 60 });
       } catch (err) {
         console.error("路线请求失败:", err);
-        alert("获取路线失败，请重试");
+        alert(this.$t('route.fetchFailed'));
       }
     },
 
     formatDuration(seconds) {
       const h = Math.floor(seconds / 3600);
       const m = Math.floor((seconds % 3600) / 60);
-      if (h > 0) return `${h} 小时 ${m} 分钟`;
-      return `${m} 分钟`;
+      if (h > 0) return `${h} ${this.$t('route.hours')} ${m} ${this.$t('route.minutes')}`;
+      return `${m} ${this.$t('route.minutes')}`;
+    },
+
+    setLocale(locale) {
+      this.$i18n.locale = locale;
+      localStorage.setItem('locale', locale);
     },
 
     resetWaypoints() {
@@ -242,6 +263,32 @@ export default {
 
 .tab-bar button:hover:not(.active) {
   background: rgba(255, 255, 255, 0.85);
+}
+
+.locale-switcher {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.92);
+  color: #555;
+  font-size: 12px;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+
+.locale-switcher select {
+  border: 1px solid #d8d8d8;
+  border-radius: 4px;
+  background: #fff;
+  color: #333;
+  font: inherit;
+  padding: 4px 6px;
 }
 
 /* Route control panel */

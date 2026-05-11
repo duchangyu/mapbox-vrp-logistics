@@ -1,31 +1,31 @@
 <template>
   <div class="mapmatching-panel">
     <div class="presets">
-      <label>快速预设</label>
+      <label>{{ $t('mapmatching.presetsLabel') }}</label>
       <div class="preset-buttons">
-        <button v-for="(p, i) in presets" :key="i" @click="applyPreset(p)">{{ p.label }}</button>
+        <button v-for="(p, i) in presets" :key="i" @click="applyPreset(p)">{{ $t(p.labelKey) }}</button>
       </div>
     </div>
 
     <div class="input-section">
       <div class="input-group">
-        <label>原始坐标（每行: 经度,纬度）</label>
+        <label>{{ $t('mapmatching.coordinatesLabel') }}</label>
         <textarea
           v-model="coordinatesText"
-          placeholder="例如：&#10;-122.4194,37.7749&#10;-122.4089,37.7849&#10;-122.3989,37.7949"
+          :placeholder="$t('mapmatching.coordinatesPlaceholder')"
           rows="8"
         ></textarea>
       </div>
       <div class="options-row">
         <label>
-          <input type="checkbox" v-model="options.tidy" /> 清理杂点 (tidy)
+          <input type="checkbox" v-model="options.tidy" /> {{ $t('mapmatching.tidy') }}
         </label>
         <label>
-          <input type="checkbox" v-model="options.annotations" /> 显示耗时信息
+          <input type="checkbox" v-model="options.annotations" /> {{ $t('mapmatching.annotations') }}
         </label>
       </div>
       <button class="btn-calc" @click="runMapMatching" :disabled="loading">
-        {{ loading ? "匹配中..." : "开始地图匹配" }}
+        {{ loading ? $t('mapmatching.matching') : $t('mapmatching.start') }}
       </button>
     </div>
 
@@ -33,31 +33,31 @@
 
     <div class="result-section" v-if="matchResult">
       <div class="match-summary">
-        <h4>匹配结果</h4>
+        <h4>{{ $t('mapmatching.result') }}</h4>
         <div class="summary-stats">
           <div class="stat-item">
-            <span class="stat-label">置信度</span>
+            <span class="stat-label">{{ $t('mapmatching.confidence') }}</span>
             <span class="stat-value">{{ (matchResult.confidence * 100).toFixed(1) }}%</span>
           </div>
           <div class="stat-item">
-            <span class="stat-label">匹配距离</span>
+            <span class="stat-label">{{ $t('mapmatching.matchedDistance') }}</span>
             <span class="stat-value">{{ formatDistance(matchResult.distance) }}</span>
           </div>
           <div class="stat-item">
-            <span class="stat-label">总耗时</span>
+            <span class="stat-label">{{ $t('mapmatching.totalDuration') }}</span>
             <span class="stat-value">{{ formatDuration(matchResult.duration) }}</span>
           </div>
           <div class="stat-item">
-            <span class="stat-label">原始点数</span>
+            <span class="stat-label">{{ $t('mapmatching.originalPoints') }}</span>
             <span class="stat-value">{{ matchResult.originalPoints }}</span>
           </div>
         </div>
       </div>
 
       <div class="legs-info" v-if="matchResult.legs">
-        <h5>分段信息</h5>
+        <h5>{{ $t('mapmatching.legs') }}</h5>
         <div v-for="(leg, idx) in matchResult.legs" :key="idx" class="leg-item">
-          <span class="leg-num">段 {{ idx + 1 }}</span>
+          <span class="leg-num">{{ $t('mapmatching.segment', { n: idx + 1 }) }}</span>
           <span class="leg-dist">{{ formatDistance(leg.distance) }}</span>
           <span class="leg-dur">{{ formatDuration(leg.duration) }}</span>
         </div>
@@ -91,7 +91,7 @@ export default {
       },
       presets: [
         {
-          label: "旧金山行程",
+          labelKey: "mapmatching.presets.sanFranciscoTrip",
           coordinates: `-122.4194,37.7749
 -122.4180,37.7760
 -122.4165,37.7775
@@ -103,7 +103,7 @@ export default {
 -122.4030,37.7910`,
         },
         {
-          label: "GPS轨迹示例",
+          labelKey: "mapmatching.presets.gpsTrace",
           coordinates: `-117.17282,32.71204
 -117.17288,32.71225
 -117.17305,32.71258
@@ -113,7 +113,7 @@ export default {
 -117.17502,32.71528`,
         },
         {
-          label: "沿101号公路",
+          labelKey: "mapmatching.presets.highway101",
           coordinates: `-122.4057,37.7729
 -122.4012,37.7698
 -122.3965,37.7670
@@ -126,7 +126,7 @@ export default {
 -122.3500,37.7495`,
         },
         {
-          label: "斯坦福校园",
+          labelKey: "mapmatching.presets.stanford",
           coordinates: `-122.0822,37.4301
 -122.0815,37.4310
 -122.0805,37.4320
@@ -138,7 +138,7 @@ export default {
 -122.0750,37.4365`,
         },
         {
-          label: "纽约时代广场",
+          labelKey: "mapmatching.presets.timesSquare",
           coordinates: `-73.9855,40.7580
 -73.9857,40.7575
 -73.9860,40.7570
@@ -151,7 +151,7 @@ export default {
 -73.9895,40.7535`,
         },
         {
-          label: "GPS漂移模拟",
+          labelKey: "mapmatching.presets.gpsDrift",
           coordinates: `-122.4194,37.7749
 -122.4185,37.7755
 -122.4205,37.7740
@@ -171,11 +171,11 @@ export default {
       const coords = this.parseCoordinates();
 
       if (coords.length < 2) {
-        this.errorMsg = "请输入至少2个坐标点";
+        this.errorMsg = this.$t('mapmatching.minCoordinates');
         return;
       }
       if (coords.length > 100) {
-        this.errorMsg = "最多支持100个坐标点";
+        this.errorMsg = this.$t('mapmatching.maxCoordinates');
         return;
       }
 
@@ -189,7 +189,7 @@ export default {
         coords.forEach((c, i) => {
           const marker = new mapboxgl.Marker({ color: "#999", radius: 6 })
             .setLngLat(c)
-            .setPopup(new mapboxgl.Popup().setText(`原始点 ${i + 1}`))
+            .setPopup(new mapboxgl.Popup().setText(this.$t('mapmatching.originalPointPopup', { n: i + 1 })))
             .addTo(this.map);
           this.markers.push(marker);
         });
@@ -210,17 +210,17 @@ export default {
 
         if (!response.ok) {
           const errorText = await response.text();
-          throw new Error(`Map Matching API failed: ${errorText}`);
+          throw new Error(this.$t('mapmatching.apiFailed', { error: errorText }));
         }
 
         const data = await response.json();
 
         if (data.code !== "Ok") {
-          throw new Error(data.message || "Map matching failed");
+          throw new Error(data.message || this.$t('mapmatching.failed'));
         }
 
         if (!data.matchings || data.matchings.length === 0) {
-          throw new Error("No matching route found");
+          throw new Error(this.$t('mapmatching.noMatchingRoute'));
         }
 
         // Store result for display
@@ -237,7 +237,7 @@ export default {
         await this.drawMatchedRoute(this.matchResult.geometry, coords);
 
       } catch (err) {
-        this.errorMsg = err.message || "匹配失败，请重试";
+        this.errorMsg = err.message || this.$t('mapmatching.failed');
       } finally {
         this.loading = false;
       }
